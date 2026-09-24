@@ -1,0 +1,769 @@
+:root {
+  /* Palette: Sorrell Brown, Matisse, Raw Sienna, Almond */
+  --sorrell: #C8B37F;
+  --sorrell-dark: #8a7442;
+  --matisse: #1C4C94;
+  --matisse-dark: #153c73;
+  --sienna: #D47444;
+  --sienna-dark: #a8532b;
+  --almond: #ECCCC4;
+  --almond-dark: #d9ab9c;
+
+  --primer: var(--sienna);
+  --primer-dark: var(--sienna-dark);
+
+  /* Warna asli logo tiap marketplace -- dipakai khusus utk badge/grafik channel */
+  --c-toko: var(--sorrell-dark);
+  --c-tokopedia: #42B549;
+  --c-tokopedia-dark: #2f8a37;
+  --c-shopee: #EE4D2D;
+  --c-shopee-dark: #c8431f;
+  --c-tiktok: #111111;
+  --c-tiktok-cyan: #25F4EE;
+  --c-tiktok-pink: #FE2C55;
+
+  --bg: #FBF7F4;
+  --bg-card: #ffffff;
+  --teks: #2A211C;
+  --teks-lemah: #8C7F76;
+  --garis: #EFE3DB;
+  --bahaya: #B3392C;
+  --sukses: #3F7D5C;
+  --radius: 14px;
+  --radius-sm: 10px;
+
+  /* Warna pembeda 3 "pembukuan" (Senantiasa/Dinda/Retro Gaming) -- dipakai di menu sidebar,
+     judul halaman, tombol utama & tab Laporan/Pengaturan masing2, supaya user langsung sadar
+     lagi di pembukuan yg mana tanpa harus baca judul (lihat body[data-ws-aktif] di app.js). */
+  --ws-senantiasa: var(--sienna-dark);
+  --ws-senantiasa-bg: var(--almond);
+  --ws-dinda: #A03D6E;
+  --ws-dinda-bg: #F3DCE7;
+  --ws-retro: #157A72;
+  --ws-retro-bg: #D7EFEA;
+  /* Wash background HALAMAN PENUH (lebih pudar drpd --ws-*-bg di atas yg dipakai utk pill/chip
+     kecil) -- dipasang lewat override var(--bg) di body[data-ws-aktif=...] di bawah. */
+  --ws-dinda-page-bg: #FBF1F6;
+  --ws-retro-page-bg: #EAF7F5;
+  /* Playfair Display (versi lama) kontrasnya tinggi -- elegan di judul besar, tapi susah dibaca
+     pas kecil/italic (feedback user). Lora dipilih krn tetap serif "literary" yg pas utk brand
+     fashion, tapi kontras goresannya lebih rendah & italic-nya didesain khusus tetap legible di
+     ukuran kecil. */
+  --font-display: 'Lora', Georgia, 'Times New Roman', serif;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--teks);
+  font-size: 14px;
+}
+
+a { color: inherit; }
+
+/* ---------- Gerbang password (lihat assets/js/auth.js) ---------- */
+.gerbang-kunci {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.gerbang-kunci[hidden] { display: none; }
+.gerbang-kunci__kotak {
+  background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius);
+  padding: 32px 28px; max-width: 320px; width: 100%; text-align: center;
+  box-shadow: 0 20px 40px -20px rgba(42, 33, 28, .25);
+}
+.gerbang-kunci__logo { width: 48px; height: 48px; object-fit: contain; margin-bottom: 10px; }
+.gerbang-kunci__kotak h1 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 0 0 4px; color: var(--sienna-dark); }
+.gerbang-kunci__kotak p { color: var(--teks-lemah); font-size: 12.5px; margin: 0 0 16px; }
+.gerbang-kunci__kotak form { display: flex; gap: 8px; }
+.gerbang-kunci__kotak input {
+  flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--garis);
+  font-size: 14px; font-family: inherit;
+}
+.gerbang-kunci__kotak input:focus { outline: 2px solid var(--sienna); outline-offset: 1px; }
+.gerbang-kunci__kotak button {
+  padding: 10px 16px; border-radius: 10px; border: none; background: var(--sienna); color: #fff;
+  font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s ease;
+}
+.gerbang-kunci__kotak button:hover { background: var(--sienna-dark); }
+.gerbang-kunci__error { color: var(--bahaya); font-size: 12px; margin: 12px 0 0; font-weight: 600; }
+
+/* ---------- Tooltip (atribut data-tip) ----------
+   DULU murni CSS ([data-tip]::before/::after + position:relative di elemennya sendiri). Diganti
+   ke satu elemen tooltip mengambang (#tooltipGlobal, dikendalikan via JS di ui.js) krn versi CSS
+   lama punya 2 bug: (1) ke-clip/ketutup oleh ancestor manapun yg overflow:hidden/auto (tabel,
+   strip produk terlaris, dst) krn tooltip ikut jadi anak DOM elemen itu; (2) `position:relative`
+   yg otomatis nempel ke SEMUA [data-tip] termasuk <tr> (baris tabel yg bisa diklik) merusak
+   perhitungan lebar kolom tabel di beberapa browser (position pada elemen <tr> tidak didukung
+   spec tabel secara konsisten). Elemen mengambang ini position:fixed & nempel ke <body>, jadi
+   TIDAK mungkin ke-clip ancestor manapun & selalu tampil paling depan (z-index tinggi). */
+.tooltip-global {
+  position: fixed; top: 0; left: 0; z-index: 999; pointer-events: none;
+  background: var(--teks); color: #fff; padding: 6px 11px; border-radius: 7px;
+  font-size: 11px; font-weight: 500; line-height: 1.3; white-space: nowrap; max-width: 280px;
+  overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
+  opacity: 0; visibility: hidden; transition: opacity .12s ease;
+}
+.tooltip-global.tampil { opacity: 1; visibility: visible; }
+.tooltip-global::after {
+  content: ''; position: absolute; left: var(--panah-x, 50%); margin-left: -5px;
+  border: 5px solid transparent;
+}
+.tooltip-global--atas::after { top: 100%; border-top-color: var(--teks); }
+.tooltip-global--bawah::after { bottom: 100%; border-bottom-color: var(--teks); }
+
+.app { display: flex; min-height: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #fff;
+  color: var(--teks);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 0;
+  border-right: 1px solid var(--garis);
+  height: 100vh;
+  overflow-y: auto;
+}
+.sidebar__brand { display: flex; align-items: center; gap: 10px; padding: 0 18px 18px; border-bottom: 1px solid var(--garis); margin-bottom: 12px; }
+.sidebar__logo-img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; transition: transform .3s ease; }
+.sidebar__brand:hover .sidebar__logo-img { transform: rotate(-8deg) scale(1.08); }
+.sidebar__nama { display: flex; flex-direction: column; line-height: 1.3; gap: 2px; }
+.sidebar__wordmark { height: 26px; width: auto; object-fit: contain; object-position: left center; }
+.sidebar__nama span { font-size: 10.5px; color: var(--teks-lemah); text-transform: uppercase; letter-spacing: .06em; }
+
+.nav { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; flex: 1; }
+.nav__item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: var(--teks-lemah); font-size: 13.5px; transition: background .15s ease, color .15s ease, transform .15s ease; }
+.nav__item svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; transition: transform .2s ease; }
+.nav__item:hover { background: #F8F1EC; color: var(--teks); transform: translateX(2px); }
+.nav__item:hover svg { transform: scale(1.1); }
+.nav__item.aktif { background: var(--almond); color: var(--sienna-dark); font-weight: 700; }
+/* Override warna nav__item.aktif di atas KHUSUS 3 menu pembukuan, masing2 pakai warna sendiri
+   (lihat --ws-* di :root) -- selector attribut ini cukup spesifik utk menang tanpa !important. */
+.nav__item[data-nav="pembukuan"].aktif { background: var(--ws-senantiasa-bg); color: var(--ws-senantiasa); }
+.nav__item[data-nav="pembukuan"]:hover { color: var(--ws-senantiasa); }
+.nav__item[data-nav="pembukuan-dinda"].aktif { background: var(--ws-dinda-bg); color: var(--ws-dinda); }
+.nav__item[data-nav="pembukuan-dinda"]:hover { color: var(--ws-dinda); }
+.nav__item[data-nav="pembukuan-retro"].aktif { background: var(--ws-retro-bg); color: var(--ws-retro); }
+.nav__item[data-nav="pembukuan-retro"]:hover { color: var(--ws-retro); }
+
+/* ---------- Filter Produk (dipindah ke sidebar, di bawah menu Pengaturan) ---------- */
+.sidebar__filter { padding: 10px 14px 6px; border-top: 1px solid var(--garis); margin-top: 8px; }
+.sidebar-filter-grup { margin-bottom: 12px; }
+.sidebar-filter-grup:last-child { margin-bottom: 0; }
+.sidebar-filter-label { font-size: 10px; font-weight: 700; color: var(--teks-lemah); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.sidebar-filter-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip-filter-v {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 999px; border: 1px solid var(--garis); background: #fff; color: var(--teks-lemah);
+  font-size: 10.5px; font-weight: 600; cursor: pointer; transition: all .15s ease;
+}
+.chip-filter-v:hover { border-color: var(--sienna); color: var(--sienna-dark); }
+.chip-filter-v.aktif { background: var(--sienna); border-color: var(--sienna); color: #fff; }
+
+.view-toggle-baris { display: flex; gap: 5px; }
+.btn-view { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--garis); background: #fff; color: var(--teks-lemah); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s ease; }
+.btn-view svg { width: 15px; height: 15px; }
+.btn-view:hover { border-color: var(--sienna); color: var(--sienna-dark); }
+.btn-view.aktif { background: var(--sienna); border-color: var(--sienna); color: #fff; }
+.select-kecil { font-size: 11.5px; padding: 6px 8px; }
+
+.sidebar__footer { padding: 12px 18px 0; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--garis); margin-top: 10px; padding-top: 12px; }
+.sidebar__footer-aksi { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.sidebar__bell { position: relative; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--garis); background: #fff; display: flex; align-items: center; justify-content: center; color: var(--teks); cursor: pointer; }
+.sidebar__bell:hover { background: #F8F1EC; }
+.sidebar__bell-count { position: absolute; top: -4px; right: -4px; background: var(--sienna); color: #fff; font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid #fff; }
+.sidebar__ig { font-size: 12px; color: var(--teks-lemah); text-decoration: none; }
+.sidebar__ig:hover { text-decoration: underline; }
+#statusBackup { font-size: 11px; color: var(--teks-lemah); }
+#statusBackup.peringatan { color: var(--sienna-dark); font-weight: 700; }
+
+/* ---------- Konten ---------- */
+/* Lebar konten mengikuti jendela (adaptif), dioptimalkan utk layar lebar rasio 16:9
+   (1280x720 s.d. 1920x1080+) -- makin lebar jendela, makin lebar kontennya (sampai batas
+   nyaman dibaca), bukan cuma nempel kiri dgn ruang kosong besar di kanan saat di-maximize. */
+.konten { flex: 1; overflow-y: auto; height: 100vh; }
+.konten__isi { padding: 22px clamp(20px, 3vw, 48px) 60px; max-width: 1680px; margin: 0 auto; }
+
+.halaman__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.halaman__header h1 { font-family: var(--font-display); font-weight: 700; font-size: 32px; margin: 0; letter-spacing: .01em; color: var(--matisse-dark); }
+/* Judul halaman & tombol utama ikut warna workspace pembukuan yg sedang aktif (lihat
+   document.body.dataset.wsAktif, diset di renderPembukuan/renderPembukuanWs di app.js). */
+body[data-ws-aktif="senantiasa"] .halaman__header h1 { color: var(--ws-senantiasa); }
+body[data-ws-aktif="dinda"] .halaman__header h1 { color: var(--ws-dinda); }
+body[data-ws-aktif="retro"] .halaman__header h1 { color: var(--ws-retro); }
+/* Background halaman (di luar sidebar & kartu putih) ikut beda tipis per workspace -- redefinisi
+   var(--bg) di body cukup di sini krn "body { background: var(--bg) }" & ".halaman-sticky-host
+   { background: var(--bg) }" (base rule) otomatis kebawa ikut nilai baru ini (custom property
+   diwarisi turunannya, tidak perlu ditulis ulang di tiap tempat yg pakai var(--bg)). */
+body[data-ws-aktif="dinda"] { --bg: var(--ws-dinda-page-bg); }
+body[data-ws-aktif="retro"] { --bg: var(--ws-retro-page-bg); }
+.halaman__header-logo { height: 52px; width: auto; display: block; transition: height .32s cubic-bezier(.4, 0, .2, 1); }
+.halaman-sticky-host.mengecil .halaman__header-logo { height: 34px; }
+body[data-ws-aktif="dinda"] .btn-primer { background: var(--ws-dinda); border-color: var(--ws-dinda); }
+body[data-ws-aktif="dinda"] .btn-primer:hover { background: #7f3159; border-color: #7f3159; box-shadow: 0 6px 14px rgba(160, 61, 110, .3); }
+body[data-ws-aktif="retro"] .btn-primer { background: var(--ws-retro); border-color: var(--ws-retro); }
+body[data-ws-aktif="retro"] .btn-primer:hover { background: #0f5f59; border-color: #0f5f59; box-shadow: 0 6px 14px rgba(21, 122, 114, .3); }
+.halaman__header p { margin: 4px 0 0; color: var(--teks-lemah); font-size: 12.5px; }
+.halaman__header-aksi { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Header sticky "menipis" (Overview, Produk & Transaksi) ----------
+   #halamanStickyHost hidup sebagai SIBLING dari #kontenUtama (bukan child-nya) supaya
+   background & shadow-nya bisa penuh selebar .konten (dari batas sidebar s.d. batas kanan
+   jendela), bukan cuma selebar kolom konten yg dibatasi max-width. Elemen ini sticky di
+   top:0 (nempel di batas atas jendela, sidebar tidak ikut discroll) lalu dapat kelas
+   .mengecil dari scroll listener di app.js (pasangHeaderSticky) begitu halaman digulir --
+   judul & subjudul menyusut/menghilang, padding menipis. Lebar KONTEN di dalamnya (judul,
+   toolbar pencarian) tetap dibatasi & dicenterkan lewat __inner supaya sejajar dgn kartu/tabel
+   di bawahnya. Semua perubahan ukuran diberi transition supaya animasinya smooth.
+   z-index eksplisit di sini SENGAJA lebih tinggi dari konten biasa supaya header ini selalu
+   menutupi kartu/baris yg discroll di bawahnya (termasuk saat di-hover). Ini aman skrg krn
+   efek hover "naik" pada kartu (.kartu/.stat/.produk-grid-card dst) sudah dipindah dari
+   `transform` ke `top` (lihat rule masing2) -- transform pada :hover dulu ikut membentuk
+   stacking context baru yg jadi rebutan sama z-index host ini (bug lama: tooltip ATAU
+   kartu yg di-hover jadi ketutup/nembus bar header, tergantung mana yg menang). Pakai `top`
+   tidak membentuk stacking context baru, jadi kartu tetap rapi di bawah header sementara
+   tooltip-nya (z-index:60 sendiri di [data-tip]::after) tetap bisa tampil di atasnya. */
+.halaman-sticky-host {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  transition: box-shadow .32s cubic-bezier(.4, 0, .2, 1);
+}
+.halaman-sticky-host:empty { display: none; }
+.halaman-sticky-host.mengecil { box-shadow: 0 10px 20px -8px rgba(42, 33, 28, .14); }
+.halaman-sticky-host__inner {
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 20px clamp(20px, 3vw, 48px) 4px;
+  transition: padding .32s cubic-bezier(.4, 0, .2, 1);
+}
+.halaman-sticky-host.mengecil .halaman-sticky-host__inner { padding-top: 10px; padding-bottom: 10px; }
+.halaman-sticky-host .halaman__header { transition: margin-bottom .32s cubic-bezier(.4, 0, .2, 1); }
+.halaman-sticky-host.mengecil .halaman__header { margin-bottom: 8px; }
+.halaman-sticky-host .halaman__header h1 { transition: font-size .32s cubic-bezier(.4, 0, .2, 1); }
+.halaman-sticky-host.mengecil .halaman__header h1 { font-size: 21px; }
+.halaman-sticky-host .halaman__header p { max-height: 20px; opacity: 1; transition: opacity .2s ease, max-height .32s ease, margin-top .32s ease; }
+.halaman-sticky-host.mengecil .halaman__header p { max-height: 0; opacity: 0; margin-top: 0; pointer-events: none; }
+.halaman-sticky-host .toolbar { transition: margin-top .32s ease; }
+
+/* ---------- Date range picker (dipakai di Overview & Transaksi) ---------- */
+.rentang-wrap { position: relative; }
+.rentang-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 999px;
+  border: 1px solid var(--garis); background: #fff; color: var(--teks); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease;
+}
+.rentang-btn:hover { border-color: var(--sienna); box-shadow: 0 4px 12px rgba(212, 116, 68, .12); }
+.rentang-btn svg:first-child { color: var(--sienna); }
+.rentang-panel {
+  position: absolute; top: calc(100% + 10px); right: 0; background: #fff; border: 1px solid var(--garis);
+  border-radius: 16px; box-shadow: 0 18px 44px rgba(42, 33, 28, .18); padding: 16px; z-index: 30; width: 300px;
+  opacity: 0; visibility: hidden; transform: translateY(-8px) scale(.98); transform-origin: top right;
+  transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s;
+}
+.rentang-panel.terbuka { opacity: 1; visibility: visible; transform: translateY(0) scale(1); transition: opacity .18s ease, transform .18s ease; }
+.rentang-preset { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--garis); }
+.chip-preset {
+  padding: 5px 11px; border-radius: 999px; border: 1px solid var(--garis); background: #fff; color: var(--teks-lemah);
+  font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s ease;
+}
+.chip-preset:hover { background: var(--almond); color: var(--sienna-dark); border-color: var(--almond); }
+
+/* ---------- Kelola klasifikasi (Pengaturan) ---------- */
+.kelola-klasifikasi-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 12px; border-radius: 999px; background: var(--almond); color: var(--sienna-dark); font-size: 12px; font-weight: 600; margin: 0 6px 6px 0; }
+.kelola-klasifikasi-chip button { width: 18px; height: 18px; border-radius: 50%; border: none; background: rgba(255,255,255,.6); color: var(--sienna-dark); cursor: pointer; font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.kelola-klasifikasi-chip button:hover { background: #fff; }
+.tambah-klasifikasi-baris { display: flex; gap: 8px; margin-top: 10px; }
+.tambah-klasifikasi-baris input { flex: 1; }
+.kalender-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
+.kalender-head strong { font-family: var(--font-display); font-style: italic; }
+.kalender-nav {
+  width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--garis); background: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--teks-lemah);
+  transition: background .15s ease, color .15s ease;
+}
+.kalender-nav:hover { background: var(--sienna); color: #fff; border-color: var(--sienna); }
+.kalender-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+.kalender-grid .lbl { color: var(--teks-lemah); font-weight: 700; font-size: 10px; padding: 3px 0 6px; text-transform: uppercase; }
+.kalender-hari {
+  width: 100%; aspect-ratio: 1; border: none; background: none; border-radius: 50%; cursor: pointer;
+  font-size: 12px; display: flex; align-items: center; justify-content: center; color: var(--teks);
+  transition: background .12s ease, color .12s ease;
+}
+.kalender-hari:hover { background: #F8F1EC; }
+.kalender-hari.hari-ini { box-shadow: inset 0 0 0 1.5px var(--matisse); }
+.kalender-hari.terpilih { background: var(--sienna); color: #fff; font-weight: 700; }
+.kalender-hari.dalam-rentang { background: var(--almond); border-radius: 0; color: var(--sienna-dark); }
+.rentang-aksi { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+.kartu { position: relative; background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; transition: top .18s ease, box-shadow .18s ease; }
+.kartu h2 { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 17px; margin: 0 0 12px; color: var(--teks); letter-spacing: .01em; }
+
+.kartu:hover { top: -2px; box-shadow: 0 10px 22px rgba(42, 33, 28, .06); }
+
+/* ---------- Pengaturan: akordeon berkelompok ----------
+   Menggantikan 6 kartu berjejer dgn grup yg bisa dibuka/tutup (1 grup aktif dlm satu waktu)
+   supaya halaman tidak berantakan di depan -- grup tertutup cukup nampilkan judul + 1 baris
+   ringkasan info (mis. jumlah kategori/koleksi, kapan terakhir cadangan), grup terbuka
+   nampilkan detail lengkapnya. Animasi expand/collapse pakai trik grid-template-rows 0fr->1fr
+   (didukung browser modern) supaya smooth tanpa perlu ukur tinggi via JS. */
+.pengaturan-tab-baris { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.pengaturan-tab {
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px 8px 8px; border-radius: 999px;
+  border: 1px solid var(--garis); background: #fff; cursor: pointer; font-family: inherit; color: var(--teks-lemah);
+  transition: all .18s ease;
+}
+.pengaturan-tab:hover { border-color: var(--sorrell); color: var(--teks); }
+.pengaturan-tab.aktif { background: var(--sienna); border-color: var(--sienna); color: #fff; box-shadow: 0 8px 18px rgba(212, 116, 68, .28); }
+/* Tab pengaturan 3 pembukuan ikut warna workspace masing2 (bukan sienna generik di atas). */
+.pengaturan-tab[data-tab-grup="pembukuan"].aktif { background: var(--ws-senantiasa); border-color: var(--ws-senantiasa); box-shadow: 0 8px 18px rgba(168, 83, 43, .28); }
+.pengaturan-tab[data-tab-grup="pembukuan-dinda"].aktif { background: var(--ws-dinda); border-color: var(--ws-dinda); box-shadow: 0 8px 18px rgba(160, 61, 110, .28); }
+.pengaturan-tab[data-tab-grup="pembukuan-retro"].aktif { background: var(--ws-retro); border-color: var(--ws-retro); box-shadow: 0 8px 18px rgba(21, 122, 114, .28); }
+.pengaturan-tab__ikon {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--almond); color: var(--sorrell-dark);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .18s ease, color .18s ease;
+}
+.pengaturan-tab__ikon svg { width: 14px; height: 14px; }
+.pengaturan-tab.aktif .pengaturan-tab__ikon { background: rgba(255, 255, 255, .25); color: #fff; }
+.pengaturan-tab__judul { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+.pengaturan-tab--bahaya:not(.aktif) { color: var(--bahaya); border-color: rgba(179, 57, 44, .3); }
+.pengaturan-tab--bahaya:not(.aktif) .pengaturan-tab__ikon { background: rgba(179, 57, 44, .12); color: var(--bahaya); }
+.pengaturan-tab--bahaya.aktif { background: var(--bahaya); border-color: var(--bahaya); box-shadow: 0 8px 18px rgba(179, 57, 44, .28); }
+.pengaturan-tab-ringkas { font-size: 12.5px; color: var(--teks-lemah); margin: 0 0 14px; }
+.pengaturan-seksi { padding: 2px 0 18px; border-top: 1px solid var(--garis); margin-top: 2px; padding-top: 16px; }
+.pengaturan-seksi:first-child { border-top: none; margin-top: 0; padding-top: 2px; }
+.pengaturan-seksi h3 { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 14.5px; margin: 0 0 8px; color: var(--teks); }
+.kartu.klik { cursor: pointer; }
+.kartu.klik:hover { top: -4px; box-shadow: 0 14px 30px rgba(42, 33, 28, .12); border-color: var(--sienna); }
+
+.grid-kartu { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+
+/* ---------- Stat card (dgn ikon & sparkline) ---------- */
+.stat { position: relative; background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; transition: top .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.stat.klik { cursor: pointer; }
+.stat.klik:hover { top: -4px; box-shadow: 0 14px 30px rgba(42, 33, 28, .12); border-color: var(--sienna); }
+.stat.klik:active { top: -1px; }
+.stat__top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+.stat__icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
+.stat.klik:hover .stat__icon { transform: rotate(-6deg) scale(1.1); }
+.stat__icon svg { width: 18px; height: 18px; }
+.stat__icon--sorrell { background: var(--sorrell); }
+.stat__icon--matisse { background: var(--matisse); }
+.stat__icon--sienna { background: var(--sienna); }
+.stat__icon--almond { background: var(--almond-dark); }
+.stat__icon--laba { background: var(--matisse-dark); }
+.stat__label { font-size: 11.5px; color: var(--teks-lemah); text-transform: uppercase; letter-spacing: .03em; }
+.stat__nilai { font-size: 22px; font-weight: 700; }
+.stat__sub { font-size: 11.5px; color: var(--teks-lemah); }
+.stat__sub .naik { color: var(--matisse); font-weight: 700; }
+.stat__sub .turun { color: var(--sienna-dark); font-weight: 700; }
+.stat.warn .stat__nilai { color: var(--sienna-dark); }
+/* Kotak ringkasan yg juga berfungsi sbg filter (mis. Uang Masuk/Keluar di Pembukuan) --
+   ditandai aktif dgn border+ring warna sienna supaya jelas ini sedang jadi filter terpilih. */
+.stat--filter-aktif { border-color: var(--sienna); box-shadow: 0 0 0 2px rgba(212, 116, 68, .18); }
+
+/* ---------- Tabel ---------- */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* vertical-align:top (bukan middle) -- kalau salah satu kolom (mis. Tanggal/Catatan) melipat
+   2 baris krn sempit sementara kolom lain sebaris (badge Tipe/Channel), "middle" bikin badge
+   nya ngambang di tengah baris yg lebih tinggi itu, tampak tidak sejajar/berantakan. "top"
+   bikin semua kolom mulai rata di baris pertama yg sama walau tingginya beda2. */
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--garis); vertical-align: top; }
+th { color: var(--teks-lemah); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .02em; }
+tbody tr { transition: background .12s ease; }
+tbody tr:hover { background: #FBF5F1; }
+tbody tr.klik { cursor: pointer; }
+.tabel-wrap { overflow-x: auto; }
+.teks-kanan { text-align: right; }
+.teks-lemah { color: var(--teks-lemah); }
+.kosong { padding: 24px; text-align: center; color: var(--teks-lemah); }
+
+/* ---------- Form & tombol ---------- */
+label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; color: var(--teks-lemah); }
+input, select, textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--garis); border-radius: 7px;
+  font-size: 13.5px; font-family: inherit; background: #fff; color: var(--teks);
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--sienna); }
+.field { margin-bottom: 12px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.hint { font-size: 11px; color: var(--teks-lemah); margin-top: 3px; }
+
+/* ---------- Combobox cari (lihat buatCombobox() di ui.js) ---------- */
+.combo-wrap { position: relative; }
+.combo-panel {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #fff; border: 1px solid var(--garis);
+  border-radius: 10px; box-shadow: 0 14px 32px rgba(42, 33, 28, .16); z-index: 30; max-height: 260px; overflow-y: auto;
+  padding: 6px;
+}
+.combo-grup-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--teks-lemah); padding: 7px 8px 3px; }
+.combo-opsi {
+  display: block; width: 100%; text-align: left; padding: 7px 8px; border-radius: 7px; border: none; background: none;
+  font-size: 13px; color: var(--teks); cursor: pointer; font-family: inherit;
+}
+.combo-opsi:hover, .combo-opsi.aktif { background: var(--almond); color: var(--sienna-dark); }
+.combo-kosong { padding: 14px 8px; text-align: center; color: var(--teks-lemah); font-size: 12.5px; }
+
+.btn {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9px;
+  border: 1px solid var(--garis); background: #fff; color: var(--teks); font-size: 13px; font-weight: 600;
+  cursor: pointer; text-decoration: none; transition: top .12s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.btn:hover { background: #FBF5F1; top: -1px; box-shadow: 0 4px 10px rgba(42, 33, 28, .08); }
+.btn:active { top: 0; box-shadow: none; }
+.btn-primer { background: var(--sienna); border-color: var(--sienna); color: #fff; }
+.btn-primer:hover { background: var(--sienna-dark); border-color: var(--sienna-dark); box-shadow: 0 6px 14px rgba(212, 116, 68, .3); }
+.btn-bahaya { color: var(--bahaya); border-color: #f0c9c2; }
+.btn-bahaya:hover { background: #fdf1ef; }
+.btn-kecil { padding: 5px 9px; font-size: 12px; }
+.btn-ikon { padding: 0; width: 27px; height: 27px; justify-content: center; gap: 0; flex-shrink: 0; }
+.btn-ikon svg { width: 13px; height: 13px; }
+.btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.toolbar .field { margin-bottom: 0; min-width: 160px; }
+
+/* ---------- Badge pill (dgn titik) ---------- */
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.badge-masuk { background: rgba(28, 76, 148, .12); color: var(--matisse); }
+.badge-keluar { background: rgba(212, 116, 68, .16); color: var(--sienna-dark); }
+.badge-koreksi { background: rgba(200, 179, 127, .3); color: var(--sorrell-dark); }
+.badge-toko { background: rgba(200, 179, 127, .3); color: var(--c-toko); }
+.badge-tokopedia { background: rgba(66, 181, 73, .14); color: var(--c-tokopedia-dark); }
+.badge-shopee { background: rgba(238, 77, 45, .14); color: var(--c-shopee-dark); }
+.badge-tiktok { background: rgba(17, 17, 17, .08); color: var(--c-tiktok); }
+
+/* Badge channel pakai logo asli (lihat ikonChannel() di ui.js), bukan titik warna generik --
+   ::before dimatikan khusus utk badge ini (badge tipe transaksi/masuk-keluar-koreksi tetap
+   pakai titik seperti biasa). .ikon-channel dipakai SAMA di badge, chip filter sidebar, dst
+   supaya representasi channel konsisten di seluruh app & laporan. */
+.badge-channel::before { display: none; }
+.ikon-channel {
+  width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.ikon-channel img { width: 100%; height: 100%; object-fit: contain; }
+/* "Toko" (fisik) tidak punya file logo, jadi pakai ikon SVG inline -- SENGAJA diwarnai lewat
+   currentColor (bukan background-color) krn browser/PDF export lazimnya TIDAK mencetak warna
+   latar CSS kecuali "background graphics" diaktifkan manual, yg bikin ikon lama (putih di atas
+   lingkaran berwarna) jadi tak terlihat sama sekali saat dicetak. Border tetap ikut tercetak. */
+.ikon-channel--toko { background: #fff; border: 1.5px solid var(--c-toko); }
+.ikon-channel--toko svg { width: 55%; height: 55%; color: var(--c-toko); }
+
+/* ---------- Banner ---------- */
+.banner { padding: 10px 26px; background: #FBEDE7; border-bottom: 1px solid #F2D3C4; color: var(--sienna-dark); font-size: 12.5px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.banner a, .banner button.link { color: var(--sienna-dark); font-weight: 700; text-decoration: underline; background: none; border: none; cursor: pointer; font-size: 12.5px; padding: 0; }
+
+/* ---------- Modal ---------- */
+.modal-overlay { position: fixed; inset: 0; background: rgba(30, 20, 18, .45); display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; z-index: 50; }
+.modal { background: #fff; border-radius: 16px; width: 100%; max-width: 560px; padding: 22px 24px; }
+.modal h2 { margin-top: 0; font-size: 16px; }
+.modal__aksi { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.modal-lebar { max-width: 760px; }
+
+/* ---------- Foto produk ---------- */
+/* Rasio potret 4:5 baku utk semua foto produk -- object-fit:cover supaya di-crop, bukan
+   di-stretch, apa pun rasio asli foto yg diunggah. */
+.foto-rasio { position: relative; width: 100%; aspect-ratio: 4 / 5; overflow: hidden; background: var(--almond); border-radius: var(--radius-sm); flex-shrink: 0; container-type: inline-size; }
+.foto-rasio img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transition: transform .3s ease; }
+.foto-rasio__kosong { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--sorrell-dark); font-size: 34px; font-weight: 700; font-family: var(--font-display); }
+.foto-preview { width: 96px; }
+.foto-preview .foto-rasio { width: 96px; }
+
+/* Overlay jumlah stok saat kartu produk (tampilan Besar/default) di-hover -- angka besar
+   putih di atas latar gelap+blur, menutupi hampir seluruh area placeholder foto supaya
+   langsung kebaca tanpa perlu buka detail produk. Latar dibedakan: stok ada = gelap netral,
+   stok kosong = gelap kemerahan (senada dgn flag/badge bahaya) supaya beda sekilas pandang. */
+.foto-rasio__stok-hover {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: #fff; text-align: center; background: rgba(20, 14, 11, .62); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.foto-rasio__stok-hover--kosong { background: rgba(107, 27, 20, .72); }
+.foto-rasio__stok-hover strong { font-size: 54px; font-size: 34cqw; font-weight: 800; line-height: 1; font-family: var(--font-display); text-shadow: 0 2px 10px rgba(0, 0, 0, .4); }
+.produk-grid-card:hover .foto-rasio__stok-hover { opacity: 1; }
+
+/* Penanda stok habis (tampilan Besar/default) -- selalu tampil (bukan cuma saat hover). */
+.foto-rasio__flag-kosong {
+  position: absolute; top: 8px; right: 8px; width: 23px; height: 23px; border-radius: 50%;
+  background: var(--bahaya); box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0, 0, 0, .3);
+  display: flex; align-items: center; justify-content: center; z-index: 2;
+}
+
+/* ---------- Grid katalog produk ---------- */
+.produk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px; }
+.produk-grid-card { position: relative; background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius-sm); overflow: hidden; cursor: pointer; transition: top .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.produk-grid-card:hover { top: -4px; box-shadow: 0 14px 28px rgba(42, 33, 28, .14); border-color: var(--sienna); }
+.produk-grid-card:hover .foto-rasio img { transform: scale(1.06); }
+.produk-grid-card__body { padding: 10px 12px 12px; }
+.produk-grid-card__nama { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.produk-grid-card__kategori { font-size: 11px; color: var(--teks-lemah); margin-top: 1px; }
+.chip-ukuran-baris { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 9px; min-height: 20px; }
+.chip-ukuran { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--almond); color: var(--sienna-dark); }
+.chip-ukuran.habis { background: #F1ECE8; color: #B7AAA0; text-decoration: line-through; }
+.chip-ukuran--lainnya { background: #fff; border: 1px dashed var(--garis); color: var(--teks-lemah); }
+.dot-channel-baris { display: flex; gap: 5px; margin-top: 10px; }
+.dot-channel { width: 9px; height: 9px; border-radius: 50%; background: #E4DAD2; }
+.dot-channel.d-toko { background: var(--c-toko); }
+.dot-channel.d-tokopedia { background: var(--c-tokopedia); }
+.dot-channel.d-shopee { background: var(--c-shopee); }
+.dot-channel.d-tiktok { background: linear-gradient(135deg, var(--c-tiktok-cyan), var(--c-tiktok-pink)); }
+.produk-grid-card__footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12px; }
+.produk-grid-card__footer strong { color: var(--sienna-dark); }
+
+/* ---------- Produk -- tampilan List (ringkas, satu baris per produk) ---------- */
+.produk-list { display: flex; flex-direction: column; background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius-sm); overflow: hidden; }
+.produk-list-baris { display: grid; grid-template-columns: 40px 2fr 1fr auto auto; gap: 12px; align-items: center; padding: 8px 14px; cursor: pointer; border-bottom: 1px solid var(--garis); transition: background .15s ease; font-size: 13px; }
+.produk-list-baris:last-child { border-bottom: none; }
+.produk-list-baris:hover { background: #FBF5F1; }
+.produk-list-thumb { width: 36px; height: 36px; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+.produk-list-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.produk-list-thumb__kosong { width: 36px; height: 36px; border-radius: 8px; background: var(--almond); color: var(--sorrell-dark); display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: var(--font-display); font-size: 14px; }
+.produk-list-nama { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.produk-list-kategori { font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Produk -- tampilan Detail (baris sedang, info lebih lengkap dari List) ---------- */
+.produk-detail-list { display: flex; flex-direction: column; gap: 12px; }
+.produk-detail-baris { position: relative; display: flex; gap: 14px; align-items: center; background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius-sm); padding: 10px 14px; cursor: pointer; transition: top .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.produk-detail-baris:hover { top: -2px; box-shadow: 0 10px 22px rgba(42, 33, 28, .1); border-color: var(--sienna); }
+.produk-detail-thumb { width: 64px; flex-shrink: 0; }
+.produk-detail-info { flex: 1; min-width: 0; }
+.produk-detail-angka { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; gap: 2px; }
+.produk-detail-angka strong { font-size: 15px; }
+.produk-detail-angka span { font-size: 12.5px; color: var(--sienna-dark); font-weight: 700; }
+
+@media (max-width: 640px) {
+  .produk-list-baris { grid-template-columns: 32px 1fr auto; }
+  .produk-list-kategori { display: none; }
+}
+
+/* ---------- Detail produk: foto besar + ketersediaan per channel ---------- */
+/* Foto & kolom info (kanan) dibuat SAMA TINGGI di ukuran jendela manapun: grid default
+   align-items:stretch membuat kedua kolom mengikuti tinggi baris (ditentukan konten kanan
+   yg lebih panjang) -- makanya rasio 4:5 baku di-nonaktifkan khusus di sini (object-fit:cover
+   tetap menjaga foto tidak gepeng/melar walau tingginya jadi dinamis, bukan 4:5 pas).
+   Di layar sempit (1 kolom, keduanya jadi stack), rasio 4:5 dikembalikan karena tidak ada lagi
+   kolom kanan yg perlu disamakan tingginya. */
+.detail-produk-atas { display: grid; grid-template-columns: 220px 1fr; gap: 22px; margin-bottom: 16px; align-items: stretch; }
+.detail-produk-atas .foto-rasio { width: 220px; aspect-ratio: auto; }
+.ukuran-tersedia-baris { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.channel-harga-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+.channel-harga-card { border: 1px solid var(--garis); border-radius: var(--radius-sm); padding: 10px 12px; }
+.channel-harga-card__harga { font-size: 15px; font-weight: 700; margin-top: 4px; }
+.channel-harga-card__stok { font-size: 11px; color: var(--teks-lemah); margin-top: 2px; }
+@media (max-width: 640px) {
+  .detail-produk-atas { grid-template-columns: 1fr; }
+  .detail-produk-atas .foto-rasio { width: 160px; aspect-ratio: 4 / 5; }
+}
+
+/* ---------- Toast ---------- */
+.toast-host { position: fixed; bottom: 18px; right: 18px; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
+.toast { background: #2A211C; color: #fff; padding: 10px 16px; border-radius: 9px; font-size: 13px; box-shadow: 0 6px 18px rgba(0, 0, 0, .2); }
+.toast.sukses { background: var(--matisse); }
+.toast.error { background: var(--bahaya); }
+
+/* ---------- Bar laporan sederhana ---------- */
+.bar-track { background: #F3EAE3; border-radius: 6px; height: 14px; overflow: hidden; }
+.bar-isi { background: var(--sienna); height: 100%; border-radius: 6px; transition: width .4s ease; }
+.bar-isi--toko { background: var(--c-toko); }
+.bar-isi--tokopedia { background: var(--c-tokopedia); }
+.bar-isi--shopee { background: var(--c-shopee); }
+.bar-isi--tiktok { background: linear-gradient(90deg, var(--c-tiktok-cyan), var(--c-tiktok-pink)); }
+
+/* ---------- Grid dua kolom dashboard ---------- */
+.grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+
+.kategori-baris { display: grid; grid-template-columns: 1fr 2fr auto; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 8px; }
+
+.baris-klik { cursor: pointer; transition: background .15s ease, padding-left .15s ease; border-radius: 8px; }
+.baris-klik:hover { background: #FBF5F1; padding-left: 6px; }
+
+.legenda-chart { display: flex; gap: 16px; font-size: 11.5px; color: var(--teks-lemah); margin-top: 6px; }
+.legenda-chart span { display: inline-flex; align-items: center; gap: 5px; }
+.legenda-chart i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ---------- Grafik tren interaktif (svgTrenMingguan/pasangTrenMingguan di app.js) ---------- */
+.tren-chart-wrap { position: relative; }
+.tren-overlay { cursor: crosshair; }
+.tren-tooltip {
+  position: absolute; top: 0; left: 0; transform: translateY(-100%) translateY(-10px);
+  background: var(--teks); color: #fff; padding: 8px 12px; border-radius: 8px;
+  font-size: 11px; line-height: 1.6; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity .12s ease; box-shadow: 0 8px 18px rgba(0, 0, 0, .2); z-index: 5;
+}
+.tren-tooltip.tampil { opacity: 1; }
+.tren-tooltip strong { display: block; font-size: 11.5px; margin-bottom: 3px; font-family: var(--font-display); font-style: italic; }
+.tren-tooltip span { display: flex; align-items: center; gap: 6px; }
+.tren-tooltip i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+.link-toko-baris { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--garis); }
+.link-toko-baris:last-child { border-bottom: none; }
+
+
+.kartu-kompak { padding: 14px 16px; margin-bottom: 0; }
+.kartu-kompak h2 { margin-bottom: 8px; }
+
+/* ---------- Overview: 3 kolom sejajar (Stok / Penjualan / Pembukuan) ----------
+   Beda dgn versi sebelumnya (area kohesif ditumpuk vertikal, tiap area selebar penuh halaman):
+   sekarang 3 kolom SEJAJAR spy total tinggi halaman jauh lebih pendek (idealnya muat 1 layar
+   tanpa scroll). align-items default (stretch) di grid bikin ke-3 kolom sama tinggi mengikuti
+   kolom terpanjang, lalu .kartu-sisa (kartu TERAKHIR tiap kolom) diberi flex:1 utk nyerap sisa
+   ruang itu -- jadi ke-3 kolom rapi sejajar biar isinya beda2 jumlah kontennya. */
+.overview-grid-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 1000px) { .overview-grid-3col { grid-template-columns: 1fr; } }
+.overview-kolom { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.overview-kolom__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.overview-kolom__judul { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 16px; margin: 0; color: var(--teks); }
+.overview-label-kecil { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--teks-lemah); margin: 2px 0 -2px; }
+.grid-3-kecil { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.grid-2-kecil { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kartu-sisa { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.kartu-sisa .tabel-wrap { flex: 1; overflow-y: auto; }
+
+/* ---------- Kotak mini per-channel (Stok per Channel) -- ikon + angka + tombol cek ---------- */
+.mini-stat-channel {
+  position: relative; background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius-sm);
+  padding: 8px 9px; cursor: pointer; transition: border-color .15s ease, top .15s ease;
+}
+.mini-stat-channel:hover { border-color: var(--sienna); top: -2px; }
+.mini-stat-channel__top { display: flex; align-items: center; justify-content: space-between; }
+.mini-stat-channel__nilai { font-size: 17px; font-weight: 700; margin-top: 5px; }
+.mini-stat-channel__nama { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: var(--teks-lemah); margin-top: 1px; }
+
+/* ---------- Overview: versi kompak (padding/gap dipangkas krn kotak2 ringkasan isinya
+   sedikit -- dilingkup ke .overview-compact SAJA, tidak menyentuh .stat/.kartu di menu lain
+   spy Produk/Transaksi/Pembukuan/Laporan yg butuh kartu lebih lega tidak ikut terpangkas). */
+.overview-compact .stat { padding: 10px 11px; gap: 2px; }
+.overview-compact .stat__top { margin-bottom: 2px; }
+.overview-compact .stat__icon { width: 26px; height: 26px; border-radius: 8px; }
+.overview-compact .stat__icon svg { width: 13px; height: 13px; }
+.overview-compact .stat__label { font-size: 10px; }
+.overview-compact .stat__nilai { font-size: 16px; }
+.overview-compact .stat__sub { font-size: 10.5px; }
+.overview-compact .kartu { padding: 11px 13px; }
+.overview-compact .kartu h2 { font-size: 13.5px; margin-bottom: 6px; }
+.overview-compact .kartu-kompak { padding: 9px 12px; }
+.overview-compact .kategori-baris { margin-bottom: 6px; font-size: 11px; }
+.overview-compact .legenda-chart { margin-top: 4px; }
+/* .konten__isi punya padding-bottom 60px (nyaman utk halaman panjang lain) -- di Overview yg
+   sengaja dirapatkan spy muat 1 layar tanpa scroll, itu 60px jadi ruang kosong yg sia-sia,
+   jadi dikompensasi di sini (margin negatif) KHUSUS utk Overview saja. */
+.overview-compact { margin-bottom: -40px; }
+
+/* ---------- Tombol tandai "sudah dicek" (dipakai di kotak mini channel Overview) ---------- */
+.cek-stok-toggle {
+  width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--sorrell); background: #fff;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+  color: var(--sorrell-dark); transition: all .18s ease;
+}
+.cek-stok-toggle svg { display: block; }
+.cek-stok-toggle:hover { border-color: var(--sukses); color: var(--sukses); }
+.cek-stok-toggle.sudah { background: var(--sukses); border-color: var(--sukses); color: #fff; }
+.cek-stok-toggle--kecil { width: 22px; height: 22px; }
+
+/* ---------- Laporan (Stok/Transaksi/Total) -- "kertas" siap cetak A4 ---------- */
+.laporan-tab-baris { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.laporan-tab-baris__tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.laporan-tab { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--garis); background: #fff; color: var(--teks-lemah); font-weight: 700; font-size: 12.5px; cursor: pointer; transition: all .15s ease; }
+.laporan-tab:hover { border-color: var(--sienna); color: var(--sienna-dark); }
+.laporan-tab.aktif { background: var(--matisse); border-color: var(--matisse); color: #fff; }
+/* 3 tab Laporan Pembukuan ikut warna workspace masing2 (bukan matisse generik di atas, yg
+   tetap dipakai Laporan Stok/Transaksi/Total). */
+.laporan-tab[data-jenis="pembukuan"].aktif { background: var(--ws-senantiasa); border-color: var(--ws-senantiasa); }
+.laporan-tab[data-jenis="pembukuan-dinda"].aktif { background: var(--ws-dinda); border-color: var(--ws-dinda); }
+.laporan-tab[data-jenis="pembukuan-retro"].aktif { background: var(--ws-retro); border-color: var(--ws-retro); }
+
+.laporan-kertas {
+  background: var(--bg-card);
+  border: 1px solid var(--garis);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 28px -14px rgba(42, 33, 28, .18);
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 12mm 10mm;
+}
+.laporan-kop { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 2px solid var(--matisse-dark); }
+.laporan-kop__brand { display: flex; align-items: center; gap: 8px; }
+.laporan-kop__brand img { width: 34px; height: 34px; object-fit: contain; }
+/* Dipakai kop laporan yg logonya sudah memuat nama brand sendiri (mis. Retro Gaming Space
+   Seririt) -- logo ditampilkan lebih lebar sendirian, tanpa blok nama/tagline teks di sampingnya. */
+.laporan-kop__brand--logo-only img { width: auto; height: 46px; max-width: 190px; }
+.laporan-kop__brand div { display: flex; flex-direction: column; line-height: 1.25; }
+.laporan-kop__brand strong { font-family: var(--font-display); font-size: 16px; color: var(--matisse-dark); }
+.laporan-kop__brand span { font-size: 10px; color: var(--teks-lemah); }
+.laporan-kop__judul { text-align: center; flex: 1; }
+.laporan-kop__judul h2 { margin: 0; font-family: var(--font-display); font-size: 19px; color: var(--teks); }
+.laporan-kop__judul p { margin: 2px 0 0; font-size: 11.5px; color: var(--teks-lemah); }
+.laporan-kop__meta { font-size: 10px; color: var(--teks-lemah); white-space: nowrap; text-align: right; }
+
+.laporan-ringkas { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.laporan-ringkas > div { background: #FBF5F1; border-radius: var(--radius-sm); padding: 8px 10px; }
+.laporan-ringkas span { display: block; font-size: 10px; color: var(--teks-lemah); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px; }
+.laporan-ringkas strong { font-size: 15px; color: var(--matisse-dark); }
+
+.laporan-subjudul { font-family: var(--font-display); font-size: 14.5px; color: var(--matisse-dark); margin: 20px 0 8px; }
+/* Kop & subjudul laporan cetak 3 pembukuan ikut warna workspace masing2 (lihat kelas
+   laporan-kertas--senantiasa/--dinda/--retro yg disisipkan di htmlLaporanPembukuan*() app.js). */
+.laporan-kertas--senantiasa .laporan-kop { border-bottom-color: var(--ws-senantiasa); }
+.laporan-kertas--senantiasa .laporan-kop__judul h2, .laporan-kertas--senantiasa .laporan-subjudul { color: var(--ws-senantiasa); }
+.laporan-kertas--dinda .laporan-kop { border-bottom-color: var(--ws-dinda); }
+.laporan-kertas--dinda .laporan-kop__judul h2, .laporan-kertas--dinda .laporan-subjudul { color: var(--ws-dinda); }
+.laporan-kertas--retro .laporan-kop { border-bottom-color: var(--ws-retro); }
+.laporan-kertas--retro .laporan-kop__judul h2, .laporan-kertas--retro .laporan-subjudul { color: var(--ws-retro); }
+.laporan-tabel-wrap { overflow-x: auto; }
+.laporan-tabel { font-size: 11px; margin-bottom: 4px; }
+.laporan-tabel th, .laporan-tabel td { padding: 6px; vertical-align: top; border-right: 1px solid var(--garis); overflow-wrap: break-word; }
+.laporan-tabel th:last-child, .laporan-tabel td:last-child { border-right: none; }
+.laporan-tabel tbody tr:nth-child(even) { background: #FBF8F5; }
+.laporan-tabel tbody tr:hover { background: #F8F1EC; }
+.laporan-tabel tfoot td { border-top: 2px solid var(--garis); border-bottom: none; background: #FBF5F1; vertical-align: middle; }
+.teks-tengah { text-align: center; }
+/* Kolom channel di Laporan Stok cuma ikon (tanpa nama) supaya kolom sesempit mungkin saat
+   dicetak -- nama channel tetap ada via tooltip data-tip saat di-layar. */
+.laporan-th-channel { width: 30px; vertical-align: middle; }
+.laporan-th-channel .ikon-channel { width: 16px; height: 16px; margin: 0 auto; }
+.laporan-baris-rendah td:first-child { box-shadow: inset 3px 0 0 var(--bahaya); }
+
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 760px) {
+  .sidebar { width: 68px; }
+  .sidebar__nama, .sidebar__ig, #statusBackup { display: none; }
+  .nav__item span { display: none; }
+  .field-row { grid-template-columns: 1fr; }
+}
+
+@media print {
+  /* Paksa browser tetap mencetak warna latar (badge channel, zebra-stripe tabel, bar chart,
+     aksen baris stok rendah, dst) -- defaultnya banyak browser/PDF export MELEWATI semua
+     background-color/box-shadow kecuali "background graphics" diaktifkan manual di dialog
+     cetak, jadi laporan bisa terlihat pucat/kosong tanpa ini. */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sidebar, #toastHost, #bannerHost, .halaman-sticky-host, .toolbar, .btn, .laporan-tab-baris, .halaman__header { display: none !important; }
+  .konten { height: auto; overflow: visible; }
+  .konten__isi { padding: 0; max-width: none; }
+  body { background: #fff; }
+  .laporan-kertas { box-shadow: none; border: none; max-width: none; padding: 0; margin: 0; }
+  .laporan-tabel thead { display: table-header-group; }
+  .laporan-tabel tr { page-break-inside: avoid; }
+}
+
+/* Default kertas cetak A4, margin kecil -- dipakai halaman Laporan (lihat .laporan-kertas). */
+@page {
+  size: A4;
+  margin: 10mm;
+}

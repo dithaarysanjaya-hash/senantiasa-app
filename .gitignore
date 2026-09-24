@@ -1,0 +1,23 @@
+# Folder ini berisi CAMPURAN file app + file kerja pribadi (backup data asli, screenshot toko,
+# spreadsheet katalog, dll) -- supaya tidak ada yang KETINGGALAN ke-commit tanpa sengaja ke repo
+# publik, strategi di sini WHITELIST (bukan blacklist): abaikan SEMUA dulu, baru izinkan satu-satu
+# file/folder yang memang bagian dari aplikasi yang di-hosting.
+*
+
+# --- Izinkan file konfigurasi git & dokumentasi ---
+!.gitignore
+!README.md
+!PANDUAN.md
+
+# --- Izinkan file inti aplikasi ---
+!Senantiasa.html
+!manifest.json
+!sw.js
+
+# --- Izinkan folder assets (kode + gambar produk yg dipakai app) ---
+!assets/
+!assets/**
+
+# --- KECUALIKAN cadangan data asli yg nyelip di assets/js/ (BUKAN bagian app, ini data bisnis
+#     sungguhan -- jangan sampai ke-publish) ---
+assets/js/cadangan-*.json
