@@ -9,6 +9,7 @@
   const gerbang = document.getElementById('gerbangKunci');
   if (!gerbang) return;
 
+  const status = document.getElementById('statusGerbang');
   const form = document.getElementById('formGerbangKunci');
   const inputEmail = document.getElementById('inputEmailGerbang');
   const inputPassword = document.getElementById('inputGerbangKunci');
@@ -34,7 +35,11 @@
       if (user) {
         mulaiSetelahLogin();
       } else {
-        gerbang.hidden = false;
+        // Baru sekarang dipastikan BENAR belum/tidak login -- ganti status "Memeriksa..." jadi
+        // form login sungguhan.
+        status.textContent = 'Masuk untuk membuka aplikasi.';
+        form.hidden = false;
+        inputEmail.focus();
       }
     });
   }
