@@ -72,6 +72,18 @@ a { color: inherit; }
   padding: 16px;
 }
 .gerbang-kunci[hidden] { display: none; }
+/* Spinner ini SENGAJA baru muncul (fade-in) setelah 250ms, bukan langsung dari awal -- kalau
+   Firebase berhasil pastikan status login lebih cepat dari itu (umumnya begitu utk sesi yg masih
+   valid & SDK yg sudah ke-cache browser), spinner ini tidak pernah sempat kelihatan sama sekali,
+   cuma background polos yg netral. Kalau pun lebih lambat (mis. koneksi lemah), yg kelihatan
+   jelas berbeda dari kotak/form login -- bukan "kedipan halaman login". */
+.gerbang-kunci__spinner {
+  width: 32px; height: 32px; border-radius: 50%; opacity: 0;
+  border: 3px solid var(--garis); border-top-color: var(--sienna);
+  animation: girarSpinnerGerbang .8s linear infinite, munculSpinnerGerbang .2s ease .25s forwards;
+}
+@keyframes girarSpinnerGerbang { to { transform: rotate(360deg); } }
+@keyframes munculSpinnerGerbang { to { opacity: 1; } }
 .gerbang-kunci__kotak {
   background: var(--bg-card); border: 1px solid var(--garis); border-radius: var(--radius);
   padding: 32px 28px; max-width: 320px; width: 100%; text-align: center;
