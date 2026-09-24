@@ -445,6 +445,12 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
   border: 1px solid var(--garis); background: #fff; color: var(--teks); font-size: 13px; font-weight: 600;
   cursor: pointer; text-decoration: none; transition: top .12s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
 }
+/* PENTING: "display: inline-flex" di atas KALAH-MENANG SAMA SEKALI dgn aturan bawaan browser
+   "[hidden] { display: none }" krn CSS dari kode kita (author stylesheet) SELALU menang lawan
+   CSS bawaan browser (user-agent stylesheet), apa pun specificity-nya -- jadi tombol manapun
+   yg pakai class="btn" + atribut hidden (mis. #btnInstalPWA di Pengaturan) akan TETAP TAMPIL
+   walau harusnya disembunyikan. Baris ini kembalikan perilaku hidden yg benar utk semua tombol. */
+.btn[hidden] { display: none; }
 .btn:hover { background: #FBF5F1; top: -1px; box-shadow: 0 4px 10px rgba(42, 33, 28, .08); }
 .btn:active { top: 0; box-shadow: none; }
 .btn-primer { background: var(--sienna); border-color: var(--sienna); color: #fff; }
