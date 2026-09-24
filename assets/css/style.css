@@ -403,6 +403,13 @@ tbody tr { transition: background .12s ease; }
 tbody tr:hover { background: #FBF5F1; }
 tbody tr.klik { cursor: pointer; }
 .tabel-wrap { overflow-x: auto; }
+/* Baris header grup warna (lihat htmlBarisVarianTerkelompok di app.js) -- menggantikan kolom
+   "Warna" yg tadinya berulang di tiap baris ukuran. */
+.tabel-grup-baris:hover { background: none; }
+.tabel-grup-baris td {
+  padding: 7px 10px 5px; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--teks-lemah); background: #FBF5F1; border-bottom: none;
+}
 .teks-kanan { text-align: right; }
 .teks-lemah { color: var(--teks-lemah); }
 .kosong { padding: 24px; text-align: center; color: var(--teks-lemah); }
@@ -759,11 +766,36 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
   .grid-2 { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 760px) {
-  .sidebar { width: 68px; }
-  .sidebar__nama, .sidebar__ig, #statusBackup, .sidebar__keluar { display: none; }
-  .nav__item span { display: none; }
+/* ---------- Tampilan mobile: sidebar jadi panel geser (drawer) ---------- */
+.btn-buka-menu {
+  display: none; position: fixed; top: 14px; left: 14px; z-index: 500;
+  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--garis);
+  background: #fff; color: var(--teks); align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 4px 14px rgba(42, 33, 28, .16);
+}
+.sidebar__tutup-menu {
+  display: none; margin-left: auto; width: 30px; height: 30px; border-radius: 8px; border: none;
+  background: none; color: var(--teks-lemah); font-size: 22px; line-height: 1; cursor: pointer;
+  flex-shrink: 0;
+}
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(30, 22, 15, .4); z-index: 850; }
+
+@media (max-width: 860px) {
+  .btn-buka-menu { display: flex; }
+  .sidebar__tutup-menu { display: block; }
+  .konten { padding-top: 56px; }
   .field-row { grid-template-columns: 1fr; }
+
+  /* Sidebar (nav + filter kontekstual + footer) jadi SATU panel geser dari kiri, ditoggle lewat
+     class "menu-terbuka" di <body> (lihat wiring di app.js) -- SENGAJA tetap tampil penuh (bukan
+     disusutkan jadi ikon spt sebelumnya) krn chip filter Kategori/Koleksi/Channel tidak pernah
+     muat rapi kalau disusutkan; kelebihannya, dgn ini semua chip tetap kebaca normal. */
+  .sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh; width: 260px; max-width: 84vw;
+    z-index: 900; transform: translateX(-100%); transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+  }
+  body.menu-terbuka .sidebar { transform: translateX(0); box-shadow: 10px 0 28px rgba(0, 0, 0, .2); }
+  body.menu-terbuka .sidebar-backdrop { display: block; }
 }
 
 @media print {

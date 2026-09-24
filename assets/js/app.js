@@ -567,6 +567,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btn) bukaLaporan(btn.dataset.bukaLaporan);
   });
 
+  // ---------- Sidebar sbg drawer di layar sempit (lihat @media di style.css) ----------
+  // Nav/filter/footer di dalam sidebar itu markup STATIS (tidak digambar ulang tiap render()),
+  // jadi listener2 di bawah ini aman dipasang SEKALI di sini, tidak perlu dipasang ulang.
+  function tutupMenuMobile() { document.body.classList.remove('menu-terbuka'); }
+  document.getElementById('btnBukaMenu').addEventListener('click', () => document.body.classList.toggle('menu-terbuka'));
+  document.getElementById('btnTutupMenu').addEventListener('click', tutupMenuMobile);
+  document.getElementById('sidebarBackdrop').addEventListener('click', tutupMenuMobile);
+  document.querySelectorAll('.nav__item').forEach((a) => a.addEventListener('click', tutupMenuMobile));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') tutupMenuMobile(); });
+
   pasangTooltipGlobal();
   pasangFotoOtomatis();
 });
@@ -1117,6 +1127,34 @@ function modalFormProduk(id, onSelesai) {
 // ============================================================
 // PRODUK -- DETAIL & VARIAN
 // ============================================================
+// Dikelompokkan per WARNA dulu (baru ukuran di dalamnya) -- konsisten dgn combobox varian di
+// form Transaksi (lihat kelompokkanVarianUntukCombo), supaya ukuran2 dari warna yg sama gampang
+// dibandingkan berdampingan, tanpa nama warna berulang di tiap baris.
+function htmlBarisVarianTerkelompok(p) {
+  if (!p.varian.length) return `<tr><td colspan="5" class="kosong">Belum ada varian. Tambahkan ukuran/warna dulu sebelum mencatat stok.</td></tr>`;
+  const grup = new Map();
+  p.varian.forEach(v => {
+    const kunci = v.warna || '(Tanpa warna)';
+    if (!grup.has(kunci)) grup.set(kunci, []);
+    grup.get(kunci).push(v);
+  });
+  return Array.from(grup.entries()).map(([warna, list]) => `
+    <tr class="tabel-grup-baris"><td colspan="5">${escapeHtml(warna)}</td></tr>
+    ${list.map(v => `<tr>
+      <td>${escapeHtml(v.ukuran || 'Default')}</td>
+      <td class="teks-kanan" data-tip="${CHANNEL_LIST.map(c => c + ': ' + hitungStokChannel(p.id, v.id, c)).join(' &bull; ')}">${hitungStok(p.id, v.id)}</td>
+      <td class="teks-kanan">${formatRupiah(v.hargaModal)}</td>
+      <td class="teks-kanan">${formatRupiah(v.hargaJual)}${v.hargaChannel && Object.keys(v.hargaChannel).length ? ` <span class="hint" data-tip="Harga custom di ${Object.keys(v.hargaChannel).join(', ')}">✎</span>` : ''}</td>
+      <td class="teks-kanan">
+        <button class="btn btn-kecil btn-primer" data-catat-varian="${v.id}" data-tip="Catat barang masuk/keluar utk varian ini">+ Catat</button>
+        <button class="btn btn-kecil" data-pindah-varian="${v.id}" data-tip="Pindahkan stok dari satu channel ke channel lain">🔀 Pindah</button>
+        <button class="btn btn-kecil btn-ikon" data-edit-varian="${v.id}" data-tip="Edit">${IKON.editKecil}</button>
+        <button class="btn btn-kecil btn-ikon btn-bahaya" data-hapus-varian="${v.id}" data-tip="Hapus">${IKON.hapusKecil}</button>
+      </td>
+    </tr>`).join('')}
+  `).join('');
+}
+
 function renderProdukDetail(id) {
   const p = cariProduk(id);
   if (!p) {
@@ -1186,22 +1224,8 @@ function renderProdukDetail(id) {
         Varian <button class="btn btn-kecil btn-primer" id="btnTambahVarian">+ Tambah Varian</button>
       </h2>
       <div class="tabel-wrap"><table>
-        <thead><tr><th>Ukuran</th><th>Warna</th><th class="teks-kanan">Stok</th><th class="teks-kanan">Harga Modal</th><th class="teks-kanan">Harga Jual</th><th></th></tr></thead>
-        <tbody>
-          ${p.varian.length ? p.varian.map(v => `<tr>
-            <td>${escapeHtml(v.ukuran || '-')}</td>
-            <td>${escapeHtml(v.warna || '-')}</td>
-            <td class="teks-kanan" data-tip="${CHANNEL_LIST.map(c => c + ': ' + hitungStokChannel(p.id, v.id, c)).join(' &bull; ')}">${hitungStok(p.id, v.id)}</td>
-            <td class="teks-kanan">${formatRupiah(v.hargaModal)}</td>
-            <td class="teks-kanan">${formatRupiah(v.hargaJual)}${v.hargaChannel && Object.keys(v.hargaChannel).length ? ` <span class="hint" data-tip="Harga custom di ${Object.keys(v.hargaChannel).join(', ')}">✎</span>` : ''}</td>
-            <td class="teks-kanan">
-              <button class="btn btn-kecil btn-primer" data-catat-varian="${v.id}" data-tip="Catat barang masuk/keluar utk varian ini">+ Catat</button>
-              <button class="btn btn-kecil" data-pindah-varian="${v.id}" data-tip="Pindahkan stok dari satu channel ke channel lain">🔀 Pindah</button>
-              <button class="btn btn-kecil btn-ikon" data-edit-varian="${v.id}" data-tip="Edit">${IKON.editKecil}</button>
-              <button class="btn btn-kecil btn-ikon btn-bahaya" data-hapus-varian="${v.id}" data-tip="Hapus">${IKON.hapusKecil}</button>
-            </td>
-          </tr>`).join('') : `<tr><td colspan="6" class="kosong">Belum ada varian. Tambahkan ukuran/warna dulu sebelum mencatat stok.</td></tr>`}
-        </tbody>
+        <thead><tr><th>Ukuran</th><th class="teks-kanan">Stok</th><th class="teks-kanan">Harga Modal</th><th class="teks-kanan">Harga Jual</th><th></th></tr></thead>
+        <tbody>${htmlBarisVarianTerkelompok(p)}</tbody>
       </table></div>
     </div>
 
@@ -2127,7 +2151,7 @@ function renderPembukuanWs(wsId) {
     <div class="halaman-sticky-host__inner">
       <div class="halaman__header">
         <div>${wsId === 'retro'
-          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924n" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
+          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924o" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
           : `<h1>${escapeHtml(info.judul)}</h1>`}<p>${escapeHtml(info.deskripsi)}</p></div>
         <div class="halaman__header-aksi">
           ${htmlTombolLaporan('pembukuan-' + wsId, 'Buka Laporan ' + info.judul)}
@@ -2378,7 +2402,7 @@ function htmlLaporanPembukuanWs(wsId, dari, sampai) {
   list.filter(x => x.tipe === 'keluar').forEach(x => { perKeluar[x.kelompok] = (perKeluar[x.kelompok] || 0) + x.jumlah; });
 
   const brandWs = wsId === 'retro'
-    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924n', nama: info.judul, logoOnly: true }
+    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924o', nama: info.judul, logoOnly: true }
     : null;
 
   return `<div class="laporan-kertas laporan-kertas--${wsId}">
@@ -2491,7 +2515,7 @@ function renderLaporan() {
 // Seririt) supaya kop-nya tampil logo brand ybs, bukan logo Senantiasa. `logoOnly: true` kalau
 // logonya sendiri sudah memuat nama brand (spy tidak dobel teks nama di sampingnya).
 function htmlKopLaporan(judul, subjudul, brand) {
-  const b = brand || { logo: 'assets/img/logo.png?v=20260924n', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
+  const b = brand || { logo: 'assets/img/logo.png?v=20260924o', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
   return `<div class="laporan-kop">
     <div class="laporan-kop__brand ${b.logoOnly ? 'laporan-kop__brand--logo-only' : ''}">
       <img src="${b.logo}" alt="${escapeHtml(b.nama)}">
