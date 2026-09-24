@@ -767,23 +767,31 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
 }
 
 /* ---------- Tampilan mobile: sidebar jadi panel geser (drawer) ---------- */
-.btn-buka-menu {
-  display: none; position: fixed; top: 14px; left: 14px; z-index: 500;
-  width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--garis);
-  background: #fff; color: var(--teks); align-items: center; justify-content: center;
-  cursor: pointer; box-shadow: 0 4px 14px rgba(42, 33, 28, .16);
+/* Bar SELEBAR LAYAR dgn latar solid (bukan tombol bulat mengambang) -- supaya begitu halaman
+   di-scroll, kontennya benar2 ketutup rapi di balik bar ini, tidak nongol di sekelilingnya
+   (itu yg terjadi di percobaan pertama: tombolnya doang yg "melayang", areanya sendiri transparan). */
+.mobile-topbar {
+  display: none; position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 900;
+  background: var(--bg-card); border-bottom: 1px solid var(--garis); align-items: center;
+  gap: 10px; padding: 0 14px;
 }
+.btn-buka-menu {
+  width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--garis);
+  background: #fff; color: var(--teks); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+}
+.mobile-topbar__logo { width: 26px; height: 26px; object-fit: contain; }
 .sidebar__tutup-menu {
   display: none; margin-left: auto; width: 30px; height: 30px; border-radius: 8px; border: none;
   background: none; color: var(--teks-lemah); font-size: 22px; line-height: 1; cursor: pointer;
   flex-shrink: 0;
 }
-.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(30, 22, 15, .4); z-index: 850; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(30, 22, 15, .4); z-index: 940; }
 
 @media (max-width: 860px) {
-  .btn-buka-menu { display: flex; }
+  .mobile-topbar { display: flex; }
   .sidebar__tutup-menu { display: block; }
-  .konten { padding-top: 56px; }
+  .konten { padding-top: 52px; }
   .field-row { grid-template-columns: 1fr; }
 
   /* Sidebar (nav + filter kontekstual + footer) jadi SATU panel geser dari kiri, ditoggle lewat
@@ -792,7 +800,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
      muat rapi kalau disusutkan; kelebihannya, dgn ini semua chip tetap kebaca normal. */
   .sidebar {
     position: fixed; top: 0; left: 0; height: 100vh; width: 260px; max-width: 84vw;
-    z-index: 900; transform: translateX(-100%); transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+    z-index: 960; transform: translateX(-100%); transition: transform .25s cubic-bezier(.4, 0, .2, 1);
   }
   body.menu-terbuka .sidebar { transform: translateX(0); box-shadow: 10px 0 28px rgba(0, 0, 0, .2); }
   body.menu-terbuka .sidebar-backdrop { display: block; }

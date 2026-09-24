@@ -2151,7 +2151,7 @@ function renderPembukuanWs(wsId) {
     <div class="halaman-sticky-host__inner">
       <div class="halaman__header">
         <div>${wsId === 'retro'
-          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924o" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
+          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924p" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
           : `<h1>${escapeHtml(info.judul)}</h1>`}<p>${escapeHtml(info.deskripsi)}</p></div>
         <div class="halaman__header-aksi">
           ${htmlTombolLaporan('pembukuan-' + wsId, 'Buka Laporan ' + info.judul)}
@@ -2402,7 +2402,7 @@ function htmlLaporanPembukuanWs(wsId, dari, sampai) {
   list.filter(x => x.tipe === 'keluar').forEach(x => { perKeluar[x.kelompok] = (perKeluar[x.kelompok] || 0) + x.jumlah; });
 
   const brandWs = wsId === 'retro'
-    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924o', nama: info.judul, logoOnly: true }
+    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924p', nama: info.judul, logoOnly: true }
     : null;
 
   return `<div class="laporan-kertas laporan-kertas--${wsId}">
@@ -2515,7 +2515,7 @@ function renderLaporan() {
 // Seririt) supaya kop-nya tampil logo brand ybs, bukan logo Senantiasa. `logoOnly: true` kalau
 // logonya sendiri sudah memuat nama brand (spy tidak dobel teks nama di sampingnya).
 function htmlKopLaporan(judul, subjudul, brand) {
-  const b = brand || { logo: 'assets/img/logo.png?v=20260924o', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
+  const b = brand || { logo: 'assets/img/logo.png?v=20260924p', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
   return `<div class="laporan-kop">
     <div class="laporan-kop__brand ${b.logoOnly ? 'laporan-kop__brand--logo-only' : ''}">
       <img src="${b.logo}" alt="${escapeHtml(b.nama)}">
