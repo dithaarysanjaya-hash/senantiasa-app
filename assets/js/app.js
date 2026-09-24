@@ -535,8 +535,10 @@ window.addEventListener('appinstalled', () => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  muatData();
-  render();
+  // muatData() + render() pertama kali SEKARANG dipicu dari assets/js/auth.js, setelah login
+  // Firebase berhasil (app ini butuh login dulu spy tahu dokumen Firestore siapa yg mau dibuka --
+  // lihat pathDokumenFirestore() di data.js). Bagian di bawah ini semuanya wiring yg tidak
+  // butuh DATA, jadi aman tetap jalan duluan di sini spy tidak nunggu login dulu.
 
   // Lihat catatan panjang di sw.js -- ini SENGAJA no-op diam2 kalau dibuka via file:// (API-nya
   // memang tidak ada di context itu) atau browser lama yg tidak dukung service worker.
@@ -548,6 +550,13 @@ document.addEventListener('DOMContentLoaded', () => {
     SORT_PRODUK = 'stok-rendah';
     if (ambilRute().halaman === 'produk' && !ambilRute().param) render();
     else location.hash = '#produk';
+  });
+
+  // Reload penuh setelah logout (bukan cuma tampilkan gerbang lagi) supaya semua state lama
+  // (listener Firestore realtime, DATA yg sudah kemuat, dsb) benar2 bersih sebelum login lagi.
+  document.getElementById('btnKeluar').addEventListener('click', async () => {
+    if (window.firebaseAuth) await window.firebaseAuth.signOut();
+    location.reload();
   });
 
   // Delegasi satu listener utk semua tombol pintasan "Laporan" -- elemen pemicunya bisa hidup
@@ -2118,7 +2127,7 @@ function renderPembukuanWs(wsId) {
     <div class="halaman-sticky-host__inner">
       <div class="halaman__header">
         <div>${wsId === 'retro'
-          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924j" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
+          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924l" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
           : `<h1>${escapeHtml(info.judul)}</h1>`}<p>${escapeHtml(info.deskripsi)}</p></div>
         <div class="halaman__header-aksi">
           ${htmlTombolLaporan('pembukuan-' + wsId, 'Buka Laporan ' + info.judul)}
@@ -2369,7 +2378,7 @@ function htmlLaporanPembukuanWs(wsId, dari, sampai) {
   list.filter(x => x.tipe === 'keluar').forEach(x => { perKeluar[x.kelompok] = (perKeluar[x.kelompok] || 0) + x.jumlah; });
 
   const brandWs = wsId === 'retro'
-    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924j', nama: info.judul, logoOnly: true }
+    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924l', nama: info.judul, logoOnly: true }
     : null;
 
   return `<div class="laporan-kertas laporan-kertas--${wsId}">
@@ -2482,7 +2491,7 @@ function renderLaporan() {
 // Seririt) supaya kop-nya tampil logo brand ybs, bukan logo Senantiasa. `logoOnly: true` kalau
 // logonya sendiri sudah memuat nama brand (spy tidak dobel teks nama di sampingnya).
 function htmlKopLaporan(judul, subjudul, brand) {
-  const b = brand || { logo: 'assets/img/logo.png?v=20260924j', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
+  const b = brand || { logo: 'assets/img/logo.png?v=20260924l', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
   return `<div class="laporan-kop">
     <div class="laporan-kop__brand ${b.logoOnly ? 'laporan-kop__brand--logo-only' : ''}">
       <img src="${b.logo}" alt="${escapeHtml(b.nama)}">

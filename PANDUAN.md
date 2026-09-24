@@ -4,7 +4,23 @@ Aplikasi pencatatan stok untuk brand **Senantiasa** ([@senantiasa_](https://www.
 
 Aplikasi ini **halaman web biasa** (bukan aplikasi terinstal): tidak perlu server, tidak perlu internet setelah dibuka pertama kali, dan tidak perlu instalasi apa pun. Datanya tersimpan **di dalam browser** (Safari/Chrome) di komputer yang dipakai membuka aplikasi ini.
 
-## 0. Cara Memindahkan dari Komputer Ini ke MacBook
+## Update: Sekarang Bisa Dibuka Online & Datanya Sama di Semua Device
+
+App ini sekarang **juga** di-hosting online (gratis, lewat GitHub Pages) di:
+
+**https://dithaarysanjaya-hash.github.io/senantiasa-app/**
+
+Beda dari versi lokal (folder di komputer) di bawah ini:
+
+- **Wajib login** dulu (email + password) sebelum bisa masuk — ini akun terpisah dari akun apa pun yang lain, dikelola lewat Firebase (layanan Google), bukan sekadar password yang dicek di browser seperti sebelumnya.
+- Data tersimpan **online** (Firestore, database gratis dari Google) — begitu login dari device MANA PUN (HP, laptop lain, dll.), datanya **sama persis**, langsung ter-update kalau ada perubahan dari device lain (tanpa perlu refresh manual).
+- **Foto produk yang di-upload manual** (lewat tombol "Foto" di form Tambah/Edit Produk) **TIDAK ikut tersinkron** ke device lain — cuma tersimpan di device tempat foto itu di-upload (batasan ukuran database online). Foto asli katalog (yang otomatis termuat dari nama file) tetap sama di semua device.
+- Tetap butuh koneksi internet tiap buka/simpan data (beda dari versi lokal yang bisa 100% offline).
+- Kalau internet putus di tengah pemakaian, app tetap bisa dipakai (data sementara disimpan di browser device itu dulu) — begitu online lagi, otomatis tersinkron ke server.
+
+Backup manual (menu Pengaturan → **Unduh Cadangan**) tetap sangat disarankan rutin dilakukan, walau datanya sekarang sudah online — sebagai jaga-jaga kalau ada masalah di sisi Firebase/Google.
+
+## 0. Cara Memindahkan dari Komputer Ini ke MacBook (Versi Lokal/Offline)
 
 Aplikasi ini **halaman web statis biasa** (HTML/CSS/JS) — tidak ada proses "build"/compile, tidak ada perbedaan Windows vs Mac. Yang perlu dilakukan cuma memindahkan foldernya apa adanya:
 

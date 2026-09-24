@@ -1,46 +1,64 @@
 // ============================================================
-// GERBANG PASSWORD (bukan keamanan sungguhan!)
+// GERBANG LOGIN (Firebase Authentication)
 // ============================================================
-// App ini di-hosting sbg situs statis di GitHub Pages -- TIDAK ADA server, jadi TIDAK MUNGKIN ada
-// autentikasi asli (server yg cek password sebelum kasih data). Gerbang ini cuma penghalang biar
-// orang yg random nemu link-nya tidak langsung bisa buka & pakai app-nya -- siapa pun yg cukup
-// teknis (buka DevTools, baca source file ini, atau langsung ubah localStorage) bisa melewatinya.
-// Password TIDAK disimpan mentah di sini, cuma hash SHA-256-nya, supaya minimal tidak kebaca
-// polos kalau ada yg buka file ini -- tapi hash pendek spt ini tetap bisa di-brute-force offline
-// kalau benar2 diincar. Jangan andalkan ini utk data yg benar2 rahasia.
+// Menggantikan gerbang password sederhana versi sebelumnya (yg cuma dicek di browser, gampang
+// dilewati) dgn login sungguhan yg diverifikasi server Google -- password TIDAK PERNAH lewat
+// atau tersimpan di kode app ini sama sekali. Setelah login sukses, dipicu muatData() (data.js,
+// sekarang async krn coba ambil dari Firestore dulu) baru render() (app.js).
 (function () {
-  const HASH_BENAR = 'b829a7eb61b65156f8fedb74a7f83e6a4fcb1feb552af216830d8cf54e516ad5';
-  const KUNCI_STORAGE = 'senantiasa_terbuka_v1';
-
   const gerbang = document.getElementById('gerbangKunci');
   if (!gerbang) return;
 
-  // Browser/konteks yg tidak dukung Web Crypto itu sangat jarang -- drpd app jadi TIDAK BISA
-  // dibuka sama sekali karena ini, gerbang dilewati (cuma penghalang, bukan pengaman sungguhan).
-  if (!window.crypto || !window.crypto.subtle) { gerbang.hidden = true; return; }
+  const form = document.getElementById('formGerbangKunci');
+  const inputEmail = document.getElementById('inputEmailGerbang');
+  const inputPassword = document.getElementById('inputGerbangKunci');
+  const error = document.getElementById('errorGerbangKunci');
+  const tombolMasuk = form.querySelector('button[type="submit"]');
 
-  if (localStorage.getItem(KUNCI_STORAGE) === '1') { gerbang.hidden = true; return; }
-
-  async function hashSha256(teks) {
-    const data = new TextEncoder().encode(teks);
-    const buf = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  function pesanErrorLogin(kode) {
+    if (kode === 'auth/invalid-credential' || kode === 'auth/wrong-password' || kode === 'auth/user-not-found') return 'Email atau password salah.';
+    if (kode === 'auth/invalid-email') return 'Format email tidak valid.';
+    if (kode === 'auth/too-many-requests') return 'Terlalu banyak percobaan gagal. Coba lagi beberapa menit lagi.';
+    if (kode === 'auth/network-request-failed') return 'Tidak ada koneksi internet.';
+    return 'Gagal masuk, coba lagi.';
   }
 
-  const form = document.getElementById('formGerbangKunci');
-  const input = document.getElementById('inputGerbangKunci');
-  const error = document.getElementById('errorGerbangKunci');
+  async function mulaiSetelahLogin() {
+    gerbang.hidden = true;
+    await muatData();
+    render();
+  }
+
+  function pasangListenerAuth() {
+    window.firebaseAuth.onAuthStateChanged((user) => {
+      if (user) {
+        mulaiSetelahLogin();
+      } else {
+        gerbang.hidden = false;
+      }
+    });
+  }
+
+  if (window.firebaseAuth) pasangListenerAuth();
+  else window.addEventListener('firebase-siap', pasangListenerAuth, { once: true });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const hash = await hashSha256(input.value);
-    if (hash === HASH_BENAR) {
-      localStorage.setItem(KUNCI_STORAGE, '1');
-      gerbang.hidden = true;
-    } else {
+    error.hidden = true;
+    tombolMasuk.disabled = true;
+    tombolMasuk.textContent = 'Memeriksa...';
+    try {
+      if (!window.firebaseSignIn) throw { code: 'auth/network-request-failed' };
+      await window.firebaseSignIn(inputEmail.value.trim(), inputPassword.value);
+      // Sisanya (sembunyikan gerbang, muat data, render) ditangani onAuthStateChanged di atas.
+    } catch (err) {
+      error.textContent = pesanErrorLogin(err.code);
       error.hidden = false;
-      input.value = '';
-      input.focus();
+      inputPassword.value = '';
+      inputPassword.focus();
+    } finally {
+      tombolMasuk.disabled = false;
+      tombolMasuk.textContent = 'Masuk';
     }
   });
 })();

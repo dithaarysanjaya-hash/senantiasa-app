@@ -64,7 +64,7 @@ body {
 
 a { color: inherit; }
 
-/* ---------- Gerbang password (lihat assets/js/auth.js) ---------- */
+/* ---------- Gerbang login (lihat assets/js/auth.js) ---------- */
 .gerbang-kunci {
   position: fixed; inset: 0; z-index: 9999;
   background: var(--bg);
@@ -80,16 +80,18 @@ a { color: inherit; }
 .gerbang-kunci__logo { width: 48px; height: 48px; object-fit: contain; margin-bottom: 10px; }
 .gerbang-kunci__kotak h1 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 0 0 4px; color: var(--sienna-dark); }
 .gerbang-kunci__kotak p { color: var(--teks-lemah); font-size: 12.5px; margin: 0 0 16px; }
-.gerbang-kunci__kotak form { display: flex; gap: 8px; }
+.gerbang-kunci__kotak form { display: flex; flex-direction: column; gap: 8px; }
 .gerbang-kunci__kotak input {
-  flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--garis);
+  width: 100%; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--garis);
   font-size: 14px; font-family: inherit;
 }
 .gerbang-kunci__kotak input:focus { outline: 2px solid var(--sienna); outline-offset: 1px; }
 .gerbang-kunci__kotak button {
-  padding: 10px 16px; border-radius: 10px; border: none; background: var(--sienna); color: #fff;
-  font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s ease;
+  width: 100%; margin-top: 4px; padding: 10px 16px; border-radius: 10px; border: none;
+  background: var(--sienna); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
+  transition: background .15s ease;
 }
+.gerbang-kunci__kotak button:disabled { opacity: .65; cursor: default; }
 .gerbang-kunci__kotak button:hover { background: var(--sienna-dark); }
 .gerbang-kunci__error { color: var(--bahaya); font-size: 12px; margin: 12px 0 0; font-weight: 600; }
 
@@ -185,6 +187,11 @@ a { color: inherit; }
 .sidebar__ig:hover { text-decoration: underline; }
 #statusBackup { font-size: 11px; color: var(--teks-lemah); }
 #statusBackup.peringatan { color: var(--sienna-dark); font-weight: 700; }
+.sidebar__keluar {
+  align-self: flex-start; margin-top: 2px; padding: 0; border: none; background: none;
+  font-size: 11px; color: var(--teks-lemah); cursor: pointer; font-family: inherit;
+}
+.sidebar__keluar:hover { color: var(--bahaya); text-decoration: underline; }
 
 /* ---------- Konten ---------- */
 /* Lebar konten mengikuti jendela (adaptif), dioptimalkan utk layar lebar rasio 16:9
@@ -742,7 +749,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
 
 @media (max-width: 760px) {
   .sidebar { width: 68px; }
-  .sidebar__nama, .sidebar__ig, #statusBackup { display: none; }
+  .sidebar__nama, .sidebar__ig, #statusBackup, .sidebar__keluar { display: none; }
   .nav__item span { display: none; }
   .field-row { grid-template-columns: 1fr; }
 }

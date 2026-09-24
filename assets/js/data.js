@@ -187,28 +187,154 @@ function pastikanPembukuanWsLengkap(data) {
   });
 }
 
-function muatData() {
+function normalisasiData(parsed) {
+  parsed.produk = parsed.produk || [];
+  parsed.produk.forEach(p => { p.koleksi = p.koleksi || ''; p.varian.forEach(migrasiVarianKeStokChannel); });
+  parsed.transaksi = parsed.transaksi || [];
+  parsed.pembukuan = parsed.pembukuan || [];
+  parsed.pengaturan = pastikanPengaturanLengkap(parsed.pengaturan);
+  pastikanPembukuanWsLengkap(parsed);
+  return parsed;
+}
+
+// Muat dari localStorage SAJA -- dipakai sbg baseline/cadangan offline oleh muatData() di bawah,
+// juga dipanggil balik kalau Firestore gagal diakses (mis. tidak ada internet).
+function muatDataLokal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) { DATA = dataAwalDenganKatalog(); simpanData(); return DATA; }
-    const parsed = JSON.parse(raw);
-    parsed.produk = parsed.produk || [];
-    parsed.produk.forEach(p => { p.koleksi = p.koleksi || ''; p.varian.forEach(migrasiVarianKeStokChannel); });
-    parsed.transaksi = parsed.transaksi || [];
-    parsed.pembukuan = parsed.pembukuan || [];
-    parsed.pengaturan = pastikanPengaturanLengkap(parsed.pengaturan);
-    pastikanPembukuanWsLengkap(parsed);
-    DATA = parsed;
+    if (!raw) return dataAwalDenganKatalog();
+    return normalisasiData(JSON.parse(raw));
   } catch (e) {
-    console.error('Gagal memuat data, memakai data kosong.', e);
-    DATA = dataKosong();
+    console.error('Gagal memuat data lokal, memakai data kosong.', e);
+    return dataKosong();
   }
+}
+
+// ---------- Sinkron online (Firebase Firestore, lihat assets/js/firebase-init.js) ----------
+// localStorage TETAP jadi cache/cadangan offline (app tetap bisa dibuka tanpa internet), tapi
+// begitu login & online, Firestore jadi "sumber kebenaran" supaya data sama persis di device
+// manapun -- lihat PANDUAN.md utk penjelasan lengkap ke user.
+//
+// Foto produk yg diupload manual (base64, lihat modalFormProduk di app.js) SENGAJA TIDAK ikut
+// disinkronkan ke Firestore -- satu dokumen Firestore dibatasi ~1MB, sedangkan base64 foto bisa
+// gampang bikin dokumennya kelebihan muatan. Foto asli katalog (yg dimuat otomatis dari nama
+// file di assets/img/, sudah ikut ke-hosting lewat repo) TETAP sama di semua device; hanya foto
+// custom yg baru di-upload yg tetap device-lokal saja sampai di-upload ulang di device lain.
+let _lepasPendengarFirestore = null;
+let _sedangTerimaDariFirestore = false;
+let _timerSimpanFirestore = null;
+
+function pathDokumenFirestore() {
+  const user = window.firebaseAuth && window.firebaseAuth.currentUser();
+  return user ? ('toko/' + user.uid) : null;
+}
+
+// Simpan foto lokal produk (base64) yg tidak ikut dokumen Firestore -- ditempel balik ke data
+// yg baru datang dari server, dicocokkan lewat id produk, spy foto custom device ini tidak hilang
+// cuma krn ada update dari device lain.
+function tempelBalikFotoLokal(dataBaru, dataLamaLokal) {
+  const petaFoto = new Map((dataLamaLokal.produk || []).map(p => [p.id, p.foto]));
+  (dataBaru.produk || []).forEach(p => { if (!('foto' in p) || !p.foto) p.foto = petaFoto.get(p.id) || null; });
+  return dataBaru;
+}
+
+function siapkanPayloadFirestore(data) {
+  const salinan = JSON.parse(JSON.stringify(data)); // buang undefined & putus referensi
+  salinan.produk = (salinan.produk || []).map(p => { const { foto, ...sisanya } = p; return sisanya; });
+  return salinan;
+}
+
+// Tepat setelah login/reload, `auth.currentUser` sudah ada tapi TOKEN-nya kadang belum benar2
+// siap dipakai Firestore sepersekian detik pertama -- muncul sbg "permission-denied" palsu
+// (padahal Rules-nya sudah benar), hilang sendiri begitu dicoba lagi. Helper ini nyoba ulang
+// max 2x dgn jeda dikit KHUSUS utk error itu, drpd langsung nyerah & pakai data lokal.
+async function coba2xKalauPermissionDenied(fn) {
+  for (let percobaan = 0; ; percobaan++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (e.code !== 'permission-denied' || percobaan >= 2) throw e;
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+}
+
+async function muatData() {
+  const dataLokal = muatDataLokal();
+  DATA = dataLokal;
+
+  const user = window.firebaseAuth && window.firebaseAuth.currentUser();
+  if (!window.firestoreDb || !user) return DATA;
+  try { await user.getIdToken(); } catch (e) { /* dibiarkan -- panggilan Firestore di bawah yg akan gagal & fallback kalau tokennya beneran bermasalah */ }
+
+  const path = pathDokumenFirestore();
+  try {
+    const snap = await coba2xKalauPermissionDenied(() => window.firestoreDb.getDoc(path));
+    if (snap.exists()) {
+      DATA = tempelBalikFotoLokal(normalisasiData(snap.data()), dataLokal);
+      simpanDataLokalSaja();
+    } else {
+      // Belum pernah sinkron sama sekali -- kirim data yg sudah ada di browser ini (kalau ada)
+      // jadi dokumen pertama, supaya data lama TIDAK hilang begitu pindah ke Firestore.
+      await window.firestoreDb.setDoc(path, siapkanPayloadFirestore(DATA));
+    }
+  } catch (e) {
+    console.error('Gagal sinkron dari Firestore, pakai data tersimpan di browser ini dulu.', e);
+    tampilkanToast('Tidak bisa terhubung ke server online -- memakai data tersimpan di browser ini dulu.', 'error');
+  }
+
+  pasangSinkronFirestoreRealtime();
   return DATA;
+}
+
+// Dengarkan perubahan Firestore scr live (dari device LAIN, atau tab lain di device ini) supaya
+// halaman yg sedang terbuka otomatis ter-update tanpa perlu reload manual.
+function pasangSinkronFirestoreRealtime(percobaanKe) {
+  percobaanKe = percobaanKe || 0;
+  if (_lepasPendengarFirestore) _lepasPendengarFirestore();
+  const path = pathDokumenFirestore();
+  if (!window.firestoreDb || !path) return;
+  _lepasPendengarFirestore = window.firestoreDb.onSnapshot(path, (snap) => {
+    // hasPendingWrites=true = ini "gema" dari tulisan kita sendiri yg belum dikonfirmasi server,
+    // bukan data baru sungguhan -- diabaikan spy tidak render ulang dgn data yg sudah kita punya.
+    if (snap.metadata.hasPendingWrites || !snap.exists()) return;
+    _sedangTerimaDariFirestore = true;
+    DATA = tempelBalikFotoLokal(normalisasiData(snap.data()), DATA);
+    simpanDataLokalSaja();
+    if (typeof render === 'function') render();
+    _sedangTerimaDariFirestore = false;
+  }, (e) => {
+    console.error('Sinkron realtime Firestore terputus.', e);
+    // Sama spt di muatData() -- "permission-denied" tepat setelah login/reload sering cuma
+    // token yg belum siap sepersekian detik, bukan Rules yg beneran salah. Coba pasang ulang.
+    if (e.code === 'permission-denied' && percobaanKe < 2) {
+      setTimeout(() => pasangSinkronFirestoreRealtime(percobaanKe + 1), 600);
+    }
+  });
+}
+
+function simpanDataLokalSaja() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch (e) { /* lihat simpanData() utk penanganan penuh */ }
+}
+
+function jadwalkanSimpanFirestore() {
+  const path = pathDokumenFirestore();
+  // Kalau perubahan DATA ini justru BARU DATANG dari Firestore (bukan aksi user di device ini),
+  // jangan dikirim balik -- percuma & bisa jadi lomba (race) dgn update lain yg lebih baru.
+  if (!window.firestoreDb || !path || _sedangTerimaDariFirestore) return;
+  clearTimeout(_timerSimpanFirestore);
+  // Ditunda dikit (bukan langsung tiap panggilan) -- banyak aksi user memicu simpanData()
+  // beberapa kali berturut-turut dlm waktu singkat, jadi digabung jadi 1 kali kirim ke server.
+  _timerSimpanFirestore = setTimeout(() => {
+    window.firestoreDb.setDoc(path, siapkanPayloadFirestore(DATA))
+      .catch(e => console.error('Gagal sinkron ke Firestore', e));
+  }, 800);
 }
 
 function simpanData() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    jadwalkanSimpanFirestore();
     return true;
   } catch (e) {
     console.error('Gagal menyimpan data', e);

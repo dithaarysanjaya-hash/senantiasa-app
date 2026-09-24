@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Inventory dan Pembukuan</title>
-<link rel="icon" type="image/png" href="assets/img/logo.png?v=20260924j">
-<link rel="apple-touch-icon" href="assets/img/logo.png?v=20260924j">
+<link rel="icon" type="image/png" href="assets/img/logo.png?v=20260924l">
+<link rel="apple-touch-icon" href="assets/img/logo.png?v=20260924l">
 <!-- manifest.json + theme-color = syarat PWA supaya bisa "Instal Aplikasi" (lihat sw.js utk
      catatan lengkap -- hanya aktif kalau dibuka lewat http(s), bukan file:// langsung). -->
 <link rel="manifest" href="manifest.json">
@@ -16,37 +16,39 @@
 <!-- "?v=" di tiap file CSS/JS/gambar di bawah ini SENGAJA ada -- ini "cache-busting": browser
      menganggap URL dgn query string berbeda sbg file yg berbeda sama sekali, jadi tidak akan
      memakai salinan lama yg ke-cache dari kunjungan sebelumnya ke folder yg sama. Kalau ke depan
-     ada pembaruan file index.html/assets, GANTI NILAI "v=20260924j" di semua tag ini (cukup
+     ada pembaruan file index.html/assets, GANTI NILAI "v=20260924l" di semua tag ini (cukup
      cari-ganti satu nilai yg sama) supaya versi terbaru pasti termuat, bukan versi lama dari cache
      browser. -->
-<link rel="stylesheet" href="assets/css/style.css?v=20260924j">
+<link rel="stylesheet" href="assets/css/style.css?v=20260924l">
 </head>
 <body>
 
-<!-- Gerbang password (lihat assets/js/auth.js utk catatan lengkap: ini PENGHALANG, bukan
-     keamanan sungguhan -- situs statis GitHub Pages tidak punya server utk autentikasi asli).
-     Sengaja TIDAK dikasih atribut "hidden" di sini (tampil dulu by default) supaya kalau JS gagal
-     dimuat, app tetap tidak kebuka (gagal-tertutup, bukan gagal-terbuka). -->
+<!-- Gerbang login (lihat assets/js/auth.js & assets/js/firebase-init.js -- pakai Firebase
+     Authentication sungguhan, bukan cuma dicek di browser). Sengaja TIDAK dikasih atribut
+     "hidden" di sini (tampil dulu by default) supaya kalau JS gagal dimuat, app tetap tidak
+     kebuka (gagal-tertutup, bukan gagal-terbuka). -->
 <div id="gerbangKunci" class="gerbang-kunci">
   <div class="gerbang-kunci__kotak">
-    <img src="assets/img/logo.png?v=20260924j" alt="" class="gerbang-kunci__logo">
+    <img src="assets/img/logo.png?v=20260924l" alt="" class="gerbang-kunci__logo">
     <h1>Senantiasa</h1>
-    <p>Masukkan password untuk membuka aplikasi.</p>
+    <p>Masuk untuk membuka aplikasi.</p>
     <form id="formGerbangKunci">
-      <input type="password" id="inputGerbangKunci" placeholder="Password" autocomplete="current-password" autofocus>
+      <input type="email" id="inputEmailGerbang" placeholder="Email" autocomplete="username" autofocus>
+      <input type="password" id="inputGerbangKunci" placeholder="Password" autocomplete="current-password">
       <button type="submit">Masuk</button>
     </form>
     <p id="errorGerbangKunci" class="gerbang-kunci__error" hidden>Password salah, coba lagi.</p>
   </div>
 </div>
-<script src="assets/js/auth.js?v=20260924j"></script>
+<script type="module" src="assets/js/firebase-init.js?v=20260924l"></script>
+<script src="assets/js/auth.js?v=20260924l"></script>
 
 <div class="app">
   <aside class="sidebar">
     <div class="sidebar__brand">
-      <img src="assets/img/logo.png?v=20260924j" alt="" class="sidebar__logo-img">
+      <img src="assets/img/logo.png?v=20260924l" alt="" class="sidebar__logo-img">
       <div class="sidebar__nama">
-        <img src="assets/img/wordmark.png?v=20260924j" alt="Senantiasa" class="sidebar__wordmark">
+        <img src="assets/img/wordmark.png?v=20260924l" alt="Senantiasa" class="sidebar__wordmark">
         <span>Inventory dan Pembukuan</span>
       </div>
     </div>
@@ -94,6 +96,7 @@
       </div>
       <a href="https://www.instagram.com/senantiasa_/" target="_blank" rel="noopener" class="sidebar__ig">@senantiasa_</a>
       <span id="statusBackup"></span>
+      <button type="button" id="btnKeluar" class="sidebar__keluar" data-tip="Keluar dari akun">⏻ Keluar</button>
     </div>
   </aside>
 
@@ -108,11 +111,11 @@
 <div id="modalHost"></div>
 <div id="tooltipGlobal" class="tooltip-global" role="tooltip" aria-hidden="true"></div>
 
-<script src="assets/js/data.js?v=20260924j"></script>
-<script src="assets/js/seed-produk.js?v=20260924j"></script>
-<script src="assets/js/seed-transaksi.js?v=20260924j"></script>
-<script src="assets/js/ui.js?v=20260924j"></script>
-<script src="assets/js/rangepicker.js?v=20260924j"></script>
-<script src="assets/js/app.js?v=20260924j"></script>
+<script src="assets/js/data.js?v=20260924l"></script>
+<script src="assets/js/seed-produk.js?v=20260924l"></script>
+<script src="assets/js/seed-transaksi.js?v=20260924l"></script>
+<script src="assets/js/ui.js?v=20260924l"></script>
+<script src="assets/js/rangepicker.js?v=20260924l"></script>
+<script src="assets/js/app.js?v=20260924l"></script>
 </body>
 </html>
