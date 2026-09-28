@@ -2171,7 +2171,7 @@ function renderPembukuanWs(wsId) {
     <div class="halaman-sticky-host__inner">
       <div class="halaman__header">
         <div>${wsId === 'retro'
-          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924s" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
+          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924t" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
           : `<h1>${escapeHtml(info.judul)}</h1>`}<p>${escapeHtml(info.deskripsi)}</p></div>
         <div class="halaman__header-aksi">
           ${htmlTombolLaporan('pembukuan-' + wsId, 'Buka Laporan ' + info.judul)}
@@ -2422,7 +2422,7 @@ function htmlLaporanPembukuanWs(wsId, dari, sampai) {
   list.filter(x => x.tipe === 'keluar').forEach(x => { perKeluar[x.kelompok] = (perKeluar[x.kelompok] || 0) + x.jumlah; });
 
   const brandWs = wsId === 'retro'
-    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924s', nama: info.judul, logoOnly: true }
+    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924t', nama: info.judul, logoOnly: true }
     : null;
 
   return `<div class="laporan-kertas laporan-kertas--${wsId}">
@@ -2544,7 +2544,7 @@ function renderLaporan() {
 // Seririt) supaya kop-nya tampil logo brand ybs, bukan logo Senantiasa. `logoOnly: true` kalau
 // logonya sendiri sudah memuat nama brand (spy tidak dobel teks nama di sampingnya).
 function htmlKopLaporan(judul, subjudul, brand) {
-  const b = brand || { logo: 'assets/img/logo.png?v=20260924s', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
+  const b = brand || { logo: 'assets/img/logo.png?v=20260924t', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
   return `<div class="laporan-kop">
     <div class="laporan-kop__brand ${b.logoOnly ? 'laporan-kop__brand--logo-only' : ''}">
       <img src="${b.logo}" alt="${escapeHtml(b.nama)}">
@@ -2946,10 +2946,11 @@ function daftarGrupPengaturan() {
           <button class="btn btn-bahaya" id="btnReset" data-tip="Tindakan permanen, tidak bisa di-undo">Hapus Semua Data</button>
         </div>`
     }
-  // Tab "Kelompok & Rincian Biaya" (Senantiasa) & pengaturan Dinda/Retro Gaming disembunyikan
-  // dari akun karyawan -- sama alasannya dgn 3 menu pembukuan di sidebar (lihat apakahPemilik()
-  // di data.js).
-  ].filter(g => apakahPemilik() || !HALAMAN_KHUSUS_PEMILIK.includes(g.kode));
+  // Tab "Kelompok & Rincian Biaya" (Senantiasa), pengaturan Dinda/Retro Gaming, MAUPUN "Zona
+  // Berbahaya" (hapus semua data) disembunyikan dari akun karyawan -- yg terakhir itu bukan soal
+  // pembukuan, tapi tindakan destruktif yg sebaiknya cuma bisa dipicu pemilik. Lihat apakahPemilik()
+  // di data.js.
+  ].filter(g => apakahPemilik() || (!HALAMAN_KHUSUS_PEMILIK.includes(g.kode) && g.kode !== 'bahaya'));
 }
 
 function renderPengaturan() {
