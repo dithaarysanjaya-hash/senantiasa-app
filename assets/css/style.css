@@ -53,6 +53,16 @@
 }
 
 * { box-sizing: border-box; }
+/* PENTING -- perbaikan bug yg SUDAH 2x ketemu (tombol Instal Aplikasi & menu sidebar karyawan):
+   banyak class di file ini kasih "display: flex/inline-flex/grid" scr eksplisit (mis. .btn,
+   .nav__item, .sidebar__bell-count, .toolbar) -- itu SELALU MENANG lawan aturan bawaan browser
+   "[hidden] { display: none }" krn CSS kita (author stylesheet) SELALU menang lawan CSS bawaan
+   browser (user-agent stylesheet) apa pun specificity-nya. Akibatnya elemen apa pun yg dikasih
+   atribut/properti "hidden" via JS TETAP TAMPIL kalau class-nya kasih "display" sendiri. Baris
+   "!important" di bawah ini nutup celah itu utk SEMUA elemen sekaligus (bukan ditambal manual
+   satu-satu tiap ketemu kasus baru) -- ini SATU-SATUNYA "!important" yg sengaja dipakai di file
+   ini, justru krn kasusnya spesifik: memastikan "hidden" itu SELALU berarti benar2 tersembunyi. */
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -71,7 +81,6 @@ a { color: inherit; }
   display: flex; align-items: center; justify-content: center;
   padding: 16px;
 }
-.gerbang-kunci[hidden] { display: none; }
 /* Spinner ini SENGAJA baru muncul (fade-in) setelah 250ms, bukan langsung dari awal -- kalau
    Firebase berhasil pastikan status login lebih cepat dari itu (umumnya begitu utk sesi yg masih
    valid & SDK yg sudah ke-cache browser), spinner ini tidak pernah sempat kelihatan sama sekali,
@@ -445,12 +454,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
   border: 1px solid var(--garis); background: #fff; color: var(--teks); font-size: 13px; font-weight: 600;
   cursor: pointer; text-decoration: none; transition: top .12s ease, background .15s ease, box-shadow .15s ease, border-color .15s ease;
 }
-/* PENTING: "display: inline-flex" di atas KALAH-MENANG SAMA SEKALI dgn aturan bawaan browser
-   "[hidden] { display: none }" krn CSS dari kode kita (author stylesheet) SELALU menang lawan
-   CSS bawaan browser (user-agent stylesheet), apa pun specificity-nya -- jadi tombol manapun
-   yg pakai class="btn" + atribut hidden (mis. #btnInstalPWA di Pengaturan) akan TETAP TAMPIL
-   walau harusnya disembunyikan. Baris ini kembalikan perilaku hidden yg benar utk semua tombol. */
-.btn[hidden] { display: none; }
 .btn:hover { background: #FBF5F1; top: -1px; box-shadow: 0 4px 10px rgba(42, 33, 28, .08); }
 .btn:active { top: 0; box-shadow: none; }
 .btn-primer { background: var(--sienna); border-color: var(--sienna); color: #fff; }
@@ -655,6 +658,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--s
    ruang itu -- jadi ke-3 kolom rapi sejajar biar isinya beda2 jumlah kontennya. */
 .overview-grid-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 @media (max-width: 1000px) { .overview-grid-3col { grid-template-columns: 1fr; } }
+/* Dipakai utk akun karyawan (kolom Pembukuan disembunyikan, lihat apakahPemilik() di data.js). */
+.overview-grid-2col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+@media (max-width: 1000px) { .overview-grid-2col { grid-template-columns: 1fr; } }
 .overview-kolom { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 .overview-kolom__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .overview-kolom__judul { font-family: var(--font-display); font-style: italic; font-weight: 600; font-size: 16px; margin: 0; color: var(--teks); }

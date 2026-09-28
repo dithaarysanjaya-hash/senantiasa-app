@@ -224,9 +224,27 @@ let _lepasPendengarFirestore = null;
 let _sedangTerimaDariFirestore = false;
 let _timerSimpanFirestore = null;
 
+// ---------- Role sederhana: pemilik vs karyawan ----------
+// SATU akun "pemilik" (uid tetap di bawah, akun dindaprayudhi@gmail.com) bisa lihat SEMUA menu
+// termasuk 3 pembukuan; akun LAIN yg login (mis. akun karyawan bersama) otomatis dianggap role
+// terbatas -- lihat apakahPemilik() dipakai di app.js utk sembunyikan menu/tab pembukuan.
+// PENTING: ini PEMBEDA TAMPILAN SAJA, BUKAN batasan keamanan data sungguhan -- baik pemilik
+// maupun karyawan sama2 baca/tulis SATU dokumen Firestore yg sama (toko/{OWNER_UID} tetap,
+// TIDAK berubah ikut siapa yg login -- lihat pathDokumenFirestore di bawah) supaya keduanya
+// lihat produk & transaksi yg sama. Kalau nanti butuh pemisahan yg benar2 tidak bisa ditembus
+// scr teknis (karyawan sungguh2 tidak bisa baca data pembukuan lewat API sekalipun), itu perlu
+// dokumen Firestore terpisah dgn Security Rules sendiri -- bukan cuma disembunyikan di JS spt ini.
+const OWNER_UID = 'I6owACv9yJZQndKJK2Aq7aSqagh2';
+function apakahPemilik() {
+  const user = window.firebaseAuth && window.firebaseAuth.currentUser();
+  return !!user && user.uid === OWNER_UID;
+}
+
 function pathDokumenFirestore() {
   const user = window.firebaseAuth && window.firebaseAuth.currentUser();
-  return user ? ('toko/' + user.uid) : null;
+  // SELALU dokumen milik pemilik (satu toko, satu dokumen) -- bukan ikut uid siapa yg sedang
+  // login, spy akun karyawan baca/tulis data toko yg sama, bukan dokumen kosong terpisah.
+  return user ? ('toko/' + OWNER_UID) : null;
 }
 
 // Simpan foto lokal produk (base64) yg tidak ikut dokumen Firestore -- ditempel balik ke data

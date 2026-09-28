@@ -296,8 +296,26 @@ function ambilRute() {
   return { halaman: halaman || 'dashboard', param };
 }
 
+const HALAMAN_KHUSUS_PEMILIK = ['pembukuan', 'pembukuan-dinda', 'pembukuan-retro'];
+
 function render() {
   const { halaman, param } = ambilRute();
+
+  // Karyawan (bukan pemilik) tidak boleh lihat 3 menu pembukuan -- link sidebar-nya disembunyikan
+  // DI SINI (idempotent, aman dipanggil ulang tiap render), dan kalau nekat ketik hash-nya
+  // langsung di address bar, dialihkan balik ke dashboard drpd halamannya ikut ke-render. Lihat
+  // catatan lengkap di apakahPemilik() (data.js) soal ini cuma pembeda TAMPILAN, bukan keamanan
+  // data sungguhan (dokumen Firestore-nya tetap 1, sama2 bisa dibaca akun mana pun yg login).
+  const pemilik = apakahPemilik();
+  HALAMAN_KHUSUS_PEMILIK.forEach(kode => {
+    const el = document.querySelector(`.nav__item[data-nav="${kode}"]`);
+    if (el) el.hidden = !pemilik;
+  });
+  if (!pemilik && HALAMAN_KHUSUS_PEMILIK.includes(halaman)) {
+    location.hash = '#dashboard';
+    return;
+  }
+
   // Dipakai style.css (body[data-ws-aktif="..."]) utk mewarnai judul/tombol sesuai workspace
   // pembukuan yg aktif -- direset di sini, lalu diisi ulang oleh renderPembukuan/renderPembukuanWs
   // kalau memang itu halamannya. Reset dulu supaya tidak "nyangkut" begitu pindah ke halaman lain.
@@ -666,9 +684,11 @@ function renderDashboard() {
     </div>
   `;
 
+  const pemilik = apakahPemilik();
+
   KONTEN().innerHTML = `
     <div class="overview-compact">
-    <div class="overview-grid-3col">
+    <div class="${pemilik ? 'overview-grid-3col' : 'overview-grid-2col'}">
       <div class="overview-kolom">
         <div class="overview-kolom__head">
           <h2 class="overview-kolom__judul">Stok</h2>
@@ -763,7 +783,7 @@ function renderDashboard() {
         </div>
       </div>
 
-      <div class="overview-kolom">
+      ${!pemilik ? '' : `<div class="overview-kolom">
         <div class="overview-kolom__head">
           <h2 class="overview-kolom__judul">Pembukuan</h2>
           ${htmlTombolLaporan('pembukuan', 'Buka Laporan Pembukuan')}
@@ -802,7 +822,7 @@ function renderDashboard() {
             </div>`;
           }).join('')}
         </div>
-      </div>
+      </div>`}
     </div>
     </div>
   `;
@@ -2151,7 +2171,7 @@ function renderPembukuanWs(wsId) {
     <div class="halaman-sticky-host__inner">
       <div class="halaman__header">
         <div>${wsId === 'retro'
-          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924q" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
+          ? `<img src="assets/img/retro-gaming-logo.png?v=20260924s" alt="${escapeHtml(info.judul)}" class="halaman__header-logo">`
           : `<h1>${escapeHtml(info.judul)}</h1>`}<p>${escapeHtml(info.deskripsi)}</p></div>
         <div class="halaman__header-aksi">
           ${htmlTombolLaporan('pembukuan-' + wsId, 'Buka Laporan ' + info.judul)}
@@ -2402,7 +2422,7 @@ function htmlLaporanPembukuanWs(wsId, dari, sampai) {
   list.filter(x => x.tipe === 'keluar').forEach(x => { perKeluar[x.kelompok] = (perKeluar[x.kelompok] || 0) + x.jumlah; });
 
   const brandWs = wsId === 'retro'
-    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924q', nama: info.judul, logoOnly: true }
+    ? { logo: 'assets/img/retro-gaming-logo.png?v=20260924s', nama: info.judul, logoOnly: true }
     : null;
 
   return `<div class="laporan-kertas laporan-kertas--${wsId}">
@@ -2454,6 +2474,13 @@ function renderLaporan() {
   const kontainer = KONTEN();
   inisialisasiRentangLaporan();
 
+  const pemilik = apakahPemilik();
+  // Karyawan nyasar ke tab pembukuan (mis. dari sesi lama sblm role-nya dicek) jatuh balik ke
+  // Laporan Stok drpd nampilin laporan uang yg tabnya sendiri sudah disembunyikan di bawah.
+  if (!pemilik && HALAMAN_KHUSUS_PEMILIK.includes(JENIS_LAPORAN_AKTIF)) {
+    JENIS_LAPORAN_AKTIF = 'stok';
+  }
+
   kontainer.innerHTML = `
     <div class="halaman__header">
       <div><h1>Laporan</h1></div>
@@ -2464,9 +2491,11 @@ function renderLaporan() {
         <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'stok' ? 'aktif' : ''}" data-jenis="stok">Laporan Stok</button>
         <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'transaksi' ? 'aktif' : ''}" data-jenis="transaksi">Laporan Transaksi</button>
         <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'total' ? 'aktif' : ''}" data-jenis="total">Laporan Total</button>
-        <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'pembukuan' ? 'aktif' : ''}" data-jenis="pembukuan">Laporan Pembukuan</button>
-        <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'pembukuan-dinda' ? 'aktif' : ''}" data-jenis="pembukuan-dinda">Laporan Dinda</button>
-        <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'pembukuan-retro' ? 'aktif' : ''}" data-jenis="pembukuan-retro">Laporan Retro Gaming</button>
+        ${!pemilik ? '' : `
+          <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'pembukuan' ? 'aktif' : ''}" data-jenis="pembukuan">Laporan Pembukuan</button>
+          <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'pembukuan-dinda' ? 'aktif' : ''}" data-jenis="pembukuan-dinda">Laporan Dinda</button>
+          <button type="button" class="laporan-tab ${JENIS_LAPORAN_AKTIF === 'pembukuan-retro' ? 'aktif' : ''}" data-jenis="pembukuan-retro">Laporan Retro Gaming</button>
+        `}
       </div>
       <div class="toolbar" id="toolbarLaporan" style="margin-bottom:0"></div>
     </div>
@@ -2515,7 +2544,7 @@ function renderLaporan() {
 // Seririt) supaya kop-nya tampil logo brand ybs, bukan logo Senantiasa. `logoOnly: true` kalau
 // logonya sendiri sudah memuat nama brand (spy tidak dobel teks nama di sampingnya).
 function htmlKopLaporan(judul, subjudul, brand) {
-  const b = brand || { logo: 'assets/img/logo.png?v=20260924q', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
+  const b = brand || { logo: 'assets/img/logo.png?v=20260924s', nama: 'Senantiasa', sub: 'Inventory & Penjualan' };
   return `<div class="laporan-kop">
     <div class="laporan-kop__brand ${b.logoOnly ? 'laporan-kop__brand--logo-only' : ''}">
       <img src="${b.logo}" alt="${escapeHtml(b.nama)}">
@@ -2917,7 +2946,10 @@ function daftarGrupPengaturan() {
           <button class="btn btn-bahaya" id="btnReset" data-tip="Tindakan permanen, tidak bisa di-undo">Hapus Semua Data</button>
         </div>`
     }
-  ];
+  // Tab "Kelompok & Rincian Biaya" (Senantiasa) & pengaturan Dinda/Retro Gaming disembunyikan
+  // dari akun karyawan -- sama alasannya dgn 3 menu pembukuan di sidebar (lihat apakahPemilik()
+  // di data.js).
+  ].filter(g => apakahPemilik() || !HALAMAN_KHUSUS_PEMILIK.includes(g.kode));
 }
 
 function renderPengaturan() {
